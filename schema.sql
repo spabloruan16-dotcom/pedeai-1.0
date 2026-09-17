@@ -108,6 +108,8 @@ CREATE TABLE IF NOT EXISTS public.pedidos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     loja_id UUID NOT NULL REFERENCES public.lojas(id) ON DELETE RESTRICT,
     cliente_id UUID NOT NULL REFERENCES public.clientes(id) ON DELETE RESTRICT,
+    cliente_nome VARCHAR(120),
+    cliente_telefone VARCHAR(30),
     modalidade VARCHAR(20) NOT NULL,
     endereco TEXT,
     pagamento VARCHAR(40) NOT NULL,

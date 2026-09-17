@@ -66,6 +66,18 @@ function writeStateFile(data) {
   fs.writeFileSync(stateFile, JSON.stringify(data, null, 2));
 }
 
+function mergeState(current, incoming) {
+  const merged = { ...current, ...incoming };
+  for (const collection of ["orders", "messages", "ratings", "categories", "products"]) {
+    if (!Array.isArray(current?.[collection]) || !Array.isArray(incoming?.[collection])) continue;
+    const key = collection === "categories" ? (item) => String(item) : (item) => String(item.id || JSON.stringify(item));
+    const items = new Map(current[collection].map((item) => [key(item), item]));
+    incoming[collection].forEach((item) => items.set(key(item), item));
+    merged[collection] = [...items.values()];
+  }
+  return merged;
+}
+
 http.createServer((request, response) => {
   const url = new URL(request.url, `http://${request.headers.host || "localhost"}`);
   const pathname = url.pathname;
@@ -88,7 +100,8 @@ http.createServer((request, response) => {
     request.on("end", () => {
       try {
         const parsed = body ? JSON.parse(body) : {};
-        writeStateFile(parsed);
+        const current = readStateFile();
+        writeStateFile(mergeState(current, parsed));
         response.writeHead(200, { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" });
         response.end(JSON.stringify({ ok: true }));
       } catch {

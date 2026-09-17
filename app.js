@@ -88,12 +88,18 @@ async function syncServerState() {
     const serverState = await response.json();
     if (!serverState || !Object.keys(serverState).length) return;
 
-    const merged = { ...blank, ...serverState };
+    const merged = { ...state, ...serverState };
+    if (merchantLogged()) {
+      if (!serverState.merchant) merged.merchant = state.merchant;
+      if (!serverState.shop) merged.shop = state.shop;
+    }
     if (fingerprint(state) !== fingerprint(merged)) {
       state = merged;
       localStorage.setItem(stateKey, JSON.stringify(merged));
       render();
+      return true;
     }
+    return false;
   } catch {
     // sem acesso ao servidor: continua localmente
   }
@@ -130,6 +136,139 @@ function save() {
   } catch {
     // ignore network failures
   }
+
+  void persistStateToSupabase();
+}
+
+let supabaseSaveInProgress = false;
+
+async function persistStateToSupabase() {
+  if (supabaseSaveInProgress || !currentUser || !state.shop?.id || typeof supabaseClient === 'undefined') return;
+  supabaseSaveInProgress = true;
+
+  try {
+    const categoryRows = state.categories.map((name, index) => ({
+      loja_id: state.shop.id,
+      nome: name,
+      ordem: index
+    }));
+
+    if (categoryRows.length) {
+      const { error } = await supabaseClient
+        .from('categorias')
+        .upsert(categoryRows, { onConflict: 'loja_id,nome' });
+      if (error) console.error('Erro ao salvar categorias no Supabase:', error);
+    }
+
+    const { data: categories, error: categoryError } = await supabaseClient
+      .from('categorias')
+      .select('id, nome')
+      .eq('loja_id', state.shop.id);
+
+    if (categoryError) {
+      console.error('Erro ao carregar categorias do Supabase:', categoryError);
+      return;
+    }
+
+    const categoryIds = new Map(categories.map((category) => [category.nome, category.id]));
+    const productRows = state.products
+      .filter((product) => categoryIds.has(product.category))
+      .map((product) => ({
+        ...(isUuid(product.id) ? { id: product.id } : {}),
+        loja_id: state.shop.id,
+        categoria_id: categoryIds.get(product.category),
+        nome: product.name,
+        descricao: product.description || '',
+        foto_url: product.photo || null,
+        preco: Number(product.price || 0),
+        disponivel: product.available !== false
+      }));
+
+    if (productRows.length) {
+      const { data: savedProducts, error } = await supabaseClient
+        .from('produtos')
+        .upsert(productRows)
+        .select('id, nome');
+      if (error) console.error('Erro ao salvar produtos no Supabase:', error);
+      if (savedProducts) {
+        savedProducts.forEach((savedProduct) => {
+          const localProduct = state.products.find((product) => product.name === savedProduct.nome);
+          if (localProduct) localProduct.id = savedProduct.id;
+        });
+      }
+    }
+  } finally {
+    supabaseSaveInProgress = false;
+  }
+}
+
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
+}
+
+async function persistOrderToSupabase(order) {
+  if (!state.shop?.id || typeof supabaseClient === 'undefined') return;
+
+  const { data: savedOrder, error } = await supabaseClient
+    .from('pedidos')
+    .insert({
+      loja_id: state.shop.id,
+      cliente_nome: order.customer,
+      cliente_telefone: order.phone,
+      modalidade: order.fulfillment,
+      endereco: order.address || null,
+      pagamento: order.payment,
+      observacoes: order.notes || null,
+      total: order.total,
+      status: order.status
+    })
+    .select('id')
+    .single();
+
+  if (error) {
+    console.error('Erro ao salvar pedido no Supabase:', error);
+    notify('Pedido salvo localmente, mas não foi enviado ao banco.');
+    return;
+  }
+
+  order.supabaseId = savedOrder.id;
+  const items = (order.items || []).map((item) => ({
+    pedido_id: savedOrder.id,
+    produto_id: isUuid(item.id) ? item.id : null,
+    nome_produto: item.name,
+    descricao_produto: item.description || '',
+    quantidade: item.quantity,
+    preco_unitario: item.price,
+    observacao: item.notes || null
+  }));
+
+  if (items.length) {
+    const { error: itemError } = await supabaseClient.from('itens_do_pedido').insert(items);
+    if (itemError) console.error('Erro ao salvar itens do pedido:', itemError);
+  }
+}
+
+async function updateOrderInSupabase(order) {
+  if (!order?.supabaseId || typeof supabaseClient === 'undefined') return;
+  const { error } = await supabaseClient
+    .from('pedidos')
+    .update({
+      status: order.status,
+      updated_at: new Date().toISOString(),
+      pronto_em: ['Pronto', 'Saiu para entrega', 'Entregue'].includes(order.status) ? new Date().toISOString() : null
+    })
+    .eq('id', order.supabaseId);
+  if (error) console.error('Erro ao atualizar pedido no Supabase:', error);
+}
+
+async function persistMessageToSupabase(message, orderId = null) {
+  if (typeof supabaseClient === 'undefined') return;
+  const { error } = await supabaseClient.from('mensagens').insert({
+    pedido_id: orderId,
+    tipo_remetente: message.from,
+    mensagem: message.text
+  });
+  if (error) console.error('Erro ao salvar mensagem no Supabase:', error);
 }
 
 function money(value) {
@@ -460,6 +599,8 @@ async function loadMerchantFromSupabase() {
       isOpen: shop.esta_aberta ?? shop.is_open ?? true,
       schedule: defaultShopSchedule()
     };
+    await loadCatalogFromSupabase();
+    await loadOrdersAndMessagesFromSupabase();
   } else {
     state.shop = null;
     state.categories = [];
@@ -467,6 +608,85 @@ async function loadMerchantFromSupabase() {
     state.orders = [];
     state.ratings = [];
     state.messages = [];
+  }
+}
+
+async function loadCatalogFromSupabase() {
+  if (!state.shop?.id) return;
+
+  const [{ data: categories, error: categoryError }, { data: products, error: productError }] = await Promise.all([
+    supabaseClient.from('categorias').select('id, nome, ordem').eq('loja_id', state.shop.id).order('ordem'),
+    supabaseClient.from('produtos').select('*').eq('loja_id', state.shop.id).order('created_at')
+  ]);
+
+  if (categoryError) {
+    console.error('Erro ao carregar categorias:', categoryError);
+    return;
+  }
+  if (productError) {
+    console.error('Erro ao carregar produtos:', productError);
+    return;
+  }
+
+  state.categories = categories.map((category) => category.nome);
+  state.products = products.map((product) => ({
+    id: product.id,
+    name: product.nome,
+    category: categories.find((category) => category.id === product.categoria_id)?.nome || '',
+    description: product.descricao || '',
+    price: Number(product.preco || 0),
+    available: product.disponivel,
+    photo: product.foto_url || ''
+  }));
+}
+
+async function loadOrdersAndMessagesFromSupabase() {
+  if (!state.shop?.id) return;
+
+  const [{ data: orders, error: orderError }, { data: messages, error: messageError }] = await Promise.all([
+    supabaseClient.from('pedidos').select('*, itens_do_pedido(*)').eq('loja_id', state.shop.id).order('created_at', { ascending: false }),
+    supabaseClient.from('mensagens').select('*').order('created_at')
+  ]);
+
+  if (orderError) {
+    console.error('Erro ao carregar pedidos do Supabase:', orderError);
+  } else {
+    state.orders = orders.map((order) => ({
+      id: order.id,
+      supabaseId: order.id,
+      customer: order.cliente_nome || 'Cliente',
+      phone: order.cliente_telefone || '',
+      address: order.endereco || '',
+      payment: order.pagamento,
+      fulfillment: order.modalidade,
+      status: order.status,
+      total: Number(order.total || 0),
+      notes: order.observacoes || '',
+      createdAt: order.created_at,
+      updatedAt: order.updated_at,
+      readyAt: order.pronto_em ? new Date(order.pronto_em).getTime() : Date.now(),
+      items: (order.itens_do_pedido || []).map((item) => ({
+        id: item.produto_id,
+        name: item.nome_produto,
+        description: item.descricao_produto,
+        quantity: item.quantidade,
+        price: Number(item.preco_unitario || 0),
+        notes: item.observacao || ''
+      }))
+    }));
+  }
+
+  if (messageError) {
+    console.error('Erro ao carregar mensagens do Supabase:', messageError);
+  } else {
+    state.messages = messages.map((message) => ({
+      id: message.id,
+      orderId: message.pedido_id || null,
+      from: message.tipo_remetente,
+      text: message.mensagem,
+      time: new Date(message.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      scope: message.pedido_id ? 'order' : 'store'
+    }));
   }
 }
 
@@ -480,20 +700,14 @@ function startLiveRefresh() {
     if (lojaParam !== null) {
       await syncServerState();
 
-      if (state.shop && lojaParam === state.shop.publicId && app) {
-        customerShop();
-      }
-
       return;
     }
 
     // IMPORTANTE:
     // Não recriar a tela de login automaticamente.
     // Só atualizar a área do comerciante se ele já estiver logado.
-    if (state.merchant && state.shop && app && merchantLogged()) {
-      if (merchantLogged()) {
-        render();
-      }
+    if (merchantLogged() && app) {
+      await syncServerState();
     }
   }, 1500);
 }
@@ -822,7 +1036,7 @@ function nav(view, icon, text, count = '') {
 
 function unreadMessagesCount(type = 'merchant') {
   if (type === 'merchant') {
-    return state.messages.filter((msg) => msg.scope === 'order' && msg.from !== 'merchant').length;
+    return state.messages.filter((msg) => (msg.scope === 'order' || msg.scope === 'store') && msg.from !== 'merchant').length;
   }
   return state.messages.filter((msg) => msg.scope === 'store' && msg.from === 'merchant').length;
 }
@@ -1098,6 +1312,7 @@ function orderDetails(order) {
     const text = String(input.value || '').trim();
     if (!text) return;
     state.messages.push({
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       orderId: order.id,
       from: 'merchant',
       text,
@@ -1105,6 +1320,7 @@ function orderDetails(order) {
       scope: 'order'
     });
     save();
+    void persistMessageToSupabase(state.messages[state.messages.length - 1], order.supabaseId || null);
     closeDialog();
     orderDetails(order);
   });
@@ -1183,6 +1399,7 @@ function categoryView() {
 }
 
 function chatView() {
+  const messages = state.messages.filter((msg) => msg.scope === 'order' || msg.scope === 'store');
   return `
     <section class="page-intro">
       <div>
@@ -1194,13 +1411,15 @@ function chatView() {
 
     <section class="panel chat-panel">
       <div class="chat-messages">
-        ${state.messages.filter((msg) => msg.scope === 'order').map((msg) => `<div class="message ${msg.from === 'merchant' ? 'mine' : ''}"><small>Pedido ${esc(msg.orderId || '')}</small>${esc(msg.text)}<small>${esc(msg.time)}</small></div>`).join('') || empty('Nenhuma conversa ainda', 'O botao de conversar aparece em cada pedido.')}
+        ${messages.map((msg) => `<div class="message ${msg.from === 'merchant' ? 'mine' : ''}"><small>${msg.scope === 'order' ? `Pedido ${esc(msg.orderId || '')}` : 'Mensagem da loja'}</small>${esc(msg.text)}<small>${esc(msg.time)}</small></div>`).join('') || empty('Nenhuma conversa ainda', 'As mensagens dos clientes aparecerão aqui.')}
       </div>
-      <form class="chat-compose">
-        <input name="message" required placeholder="Selecione um pedido para responder">
+      <form class="chat-compose" data-store-chat>
+        <input name="message" required placeholder="Responder aos clientes">
+        <button class="primary-button">Enviar mensagem</button>
       </form>
     </section>
   `;
+
 }
 
 function printersView() {
@@ -1599,6 +1818,23 @@ function bindMerchant() {
     };
   });
 
+  document.querySelector('[data-store-chat]')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const text = String(new FormData(event.currentTarget).get('message') || '').trim();
+    if (!text) return;
+    state.messages.push({
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      from: 'merchant',
+      text,
+      time: nowTime(),
+      scope: 'store'
+    });
+    save();
+    void persistMessageToSupabase(state.messages[state.messages.length - 1]);
+    render();
+    notify('Mensagem enviada para a loja');
+  });
+
   document.querySelectorAll('[data-view]').forEach((button) => {
     button.onclick = () => {
       state.view = button.dataset.view;
@@ -1857,6 +2093,7 @@ function acceptOrder(id) {
   order.updatedAt = Date.now();
   order.readyAt = Date.now() + 12 * 60000;
   save();
+  void updateOrderInSupabase(order);
   if (state.printerConfig.autoPrint) printReceipt(order);
   render();
   notify(`Pedido ${order.id} aceito automaticamente.`);
@@ -1880,6 +2117,7 @@ function advanceOrder(id) {
   }
 
   save();
+  void updateOrderInSupabase(order);
   render();
   notify(`Pedido ${order.id} atualizado`);
 }
@@ -2200,6 +2438,7 @@ function checkoutDialog() {
     state.orders.push(order);
     state.cart = [];
     save();
+    void persistOrderToSupabase(order);
     closeDialog();
     render();
     notify('Pedido enviado com sucesso!');
@@ -2230,12 +2469,14 @@ function customerChat() {
     if (!text) return;
 
     state.messages.push({
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       from: 'customer',
       text,
       time: nowTime(),
       scope: 'store'
     });
     save();
+    void persistMessageToSupabase(state.messages[state.messages.length - 1]);
     closeDialog();
     notify('Mensagem enviada para a loja');
   };
