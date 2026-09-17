@@ -272,15 +272,15 @@ function merchantSetupView() {
     }
 
     const payload = {
-      name: shopName,
-      type: shopType,
-      description,
+      nome: shopName,
+      tipo: shopType,
+      descricao: description,
       public_id: state.shop?.publicId || `${slug(shopName)}-${Math.random().toString(36).slice(2, 7)}`,
-      is_open: true,
-      accepts_delivery: true,
-      accepts_pickup: true,
-      delivery_minutes: 45,
-      pickup_minutes: 20,
+      esta_aberta: true,
+      aceita_entrega: true,
+      aceita_retirada: true,
+      tempo_entrega: 45,
+      tempo_retirada: 20,
       photo_url: state.shop?.photo || null
     };
 
@@ -305,27 +305,27 @@ function merchantSetupView() {
           id: shopData.id,
           merchantId: shopData.merchant_id,
           publicId: shopData.public_id,
-          name: shopData.name,
-          type: shopData.type,
-          description: shopData.description || '',
+          name: shopData.nome || shopData.name || '',
+          type: shopData.tipo || shopData.type || '',
+          description: shopData.descricao ?? shopData.description ?? '',
           photo: shopData.photo_url || '',
-          isOpen: shopData.is_open,
+          isOpen: shopData.esta_aberta ?? shopData.is_open ?? true,
           schedule: defaultShopSchedule()
         };
       } else {
         const { error: updateError } = await supabaseClient
           .from('lojas')
           .update({
-            name: shopName,
-            type: shopType,
-            description,
+            nome: shopName,
+            tipo: shopType,
+            descricao: description,
             public_id: payload.public_id,
             photo_url: payload.photo_url,
-            is_open: true,
-            accepts_delivery: true,
-            accepts_pickup: true,
-            delivery_minutes: 45,
-            pickup_minutes: 20,
+            esta_aberta: true,
+            aceita_entrega: true,
+            aceita_retirada: true,
+            tempo_entrega: 45,
+            tempo_retirada: 20,
             updated_at: new Date().toISOString()
           })
           .eq('id', state.shop.id);
@@ -411,7 +411,7 @@ async function loadMerchantFromSupabase() {
 
   state.merchant = {
     id: merchant.id,
-    name: merchant.name,
+    name: merchant.nome || merchant.name || currentUser.user_metadata?.name || 'Comerciante',
     email: merchant.email
   };
 
@@ -433,11 +433,11 @@ async function loadMerchantFromSupabase() {
       id: shop.id,
       merchantId: shop.merchant_id,
       publicId: shop.public_id,
-      name: shop.name,
-      type: shop.type,
-      description: shop.description || '',
+      name: shop.nome || shop.name || '',
+      type: shop.tipo || shop.type || '',
+      description: shop.descricao ?? shop.description ?? '',
       photo: shop.photo_url || '',
-      isOpen: shop.is_open,
+      isOpen: shop.esta_aberta ?? shop.is_open ?? true,
       schedule: defaultShopSchedule()
     };
   }
@@ -606,7 +606,7 @@ async function registerMerchant(event) {
       .from('comerciantes')
       .insert({
         id: user.id,
-        name: name,
+        nome: name,
         email: email
       });
 
@@ -628,15 +628,15 @@ async function registerMerchant(event) {
         .insert({
           merchant_id: user.id,
           public_id: publicId,
-          name: shopName,
-          type: shopType,
-          description: '',
+          nome: shopName,
+          tipo: shopType,
+          descricao: '',
           photo_url: null,
-          is_open: true,
-          accepts_delivery: true,
-          accepts_pickup: true,
-          delivery_minutes: 45,
-          pickup_minutes: 20
+          esta_aberta: true,
+          aceita_entrega: true,
+          aceita_retirada: true,
+          tempo_entrega: 45,
+          tempo_retirada: 20
         })
         .select()
         .single();
@@ -668,11 +668,11 @@ async function registerMerchant(event) {
       id: shopData.id,
       merchantId: shopData.merchant_id,
       publicId: shopData.public_id,
-      name: shopData.name,
-      type: shopData.type,
-      description: shopData.description || '',
+      name: shopData.nome || shopData.name || '',
+      type: shopData.tipo || shopData.type || '',
+      description: shopData.descricao ?? shopData.description ?? '',
       photo: shopData.photo_url || '',
-      isOpen: shopData.is_open,
+      isOpen: shopData.esta_aberta ?? shopData.is_open ?? true,
       schedule: defaultShopSchedule()
     };
 
@@ -806,7 +806,7 @@ function merchantPanel() {
         <div class="sidebar-bottom">
           <button class="help-link" data-action="copy">Compartilhar loja</button>
           <div class="profile-chip">
-            <div class="profile-photo">${esc(state.merchant.name.slice(0, 2).toUpperCase())}</div>
+            <div class="profile-photo">${esc(String(state.merchant.name || 'CO').slice(0, 2).toUpperCase())}</div>
             <div>
               <strong>${esc(state.merchant.name)}</strong>
               <small>Comerciante</small>
