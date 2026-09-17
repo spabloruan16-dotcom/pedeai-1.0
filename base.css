@@ -1,0 +1,59 @@
+/* Base global do projeto */
+:root {
+  --coral: #f4512c;
+  --coral-strong: #d93d17;
+  --coral-soft: #fff4ef;
+  --blue: #087fc4;
+  --blue-deep: #07345c;
+  --blue-soft: #e8f7ff;
+  --cyan: #bcefe9;
+  --board-red: #f16b78;
+  --board-amber: #f0a23a;
+  --board-green: #32a77b;
+  --ink: #1f2430;
+  --muted: #67707d;
+  --bg: #f5f3f0;
+  --panel: #ffffff;
+  --line: #ece7e2;
+  --shadow: rgba(25, 29, 36, 0.08);
+  --success: #32a66d;
+  --warning: #f4b740;
+  --danger: #d95d5d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+}
+
+body {
+  overflow-x: hidden;
+}
+
+body {
+  min-height: 100vh;
+}
+
+button, input, textarea, select {
+  font: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+button {
+  cursor: pointer;
+}
+
+#app {
+  min-height: 100vh;
+}

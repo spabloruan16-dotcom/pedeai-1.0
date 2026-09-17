@@ -1,0 +1,303 @@
+/* Estilos do painel administrativo e controles extras */
+.board-tools {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.board-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -4px 0 16px;
+  padding: 10px 14px;
+  border: 1px solid #8bd3ed;
+  border-radius: 6px;
+  background: #c9f1fb;
+  color: #075276;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.board-alert-icon {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  flex: 0 0 20px;
+  font-size: 0.72rem;
+}
+
+.search-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0 12px;
+  width: min(430px, 100%);
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.search-field input {
+  border: none;
+  outline: none;
+  width: 100%;
+  padding: 12px 0;
+  background: transparent;
+  color: var(--ink);
+}
+
+.filter-pills {
+  display: flex;
+  gap: 6px;
+  background: #f2efed;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.filter-pills button {
+  border: none;
+  background: transparent;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.filter-pills button.selected {
+  background: #fff;
+  color: var(--coral);
+  box-shadow: 0 2px 8px rgba(25, 29, 36, 0.05);
+}
+
+.order-config-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+  border: 0;
+  background: #fff;
+}
+
+.order-config-header,
+.order-config-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.order-config-pill {
+  display: grid;
+  gap: 4px;
+  min-width: 130px;
+}
+
+.order-config-pill span,
+.toggle-pill span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.order-config-pill strong { font-size: 0.9rem; }
+
+.toggle-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.toggle-pill input {
+  appearance: none;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: #d7dfe2;
+  position: relative;
+  cursor: pointer;
+}
+
+.toggle-pill input::after {
+  content: '';
+  width: 16px;
+  height: 16px;
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s ease;
+}
+
+.toggle-pill input:checked { background: #20a5d2; }
+.toggle-pill input:checked::after { transform: translateX(16px); }
+
+.order-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.board-column {
+  min-width: 0;
+  min-height: 420px;
+  padding: 12px;
+  border-radius: 8px;
+  background: #eaf0ef;
+}
+
+.board-column > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 6px 12px;
+  color: #fff;
+}
+
+.board-column > header b {
+  min-width: 24px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.13);
+  text-align: center;
+  font-size: 0.75rem;
+}
+
+.incoming-column { background: var(--board-red); }
+.producing-column { background: var(--board-amber); }
+.delivery-column { background: var(--board-green); }
+
+.board-list {
+  display: grid;
+  gap: 10px;
+}
+
+.order-card {
+  padding: 13px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 5px 12px rgba(25, 29, 36, 0.12);
+}
+
+.order-card-top,
+.customer-line,
+.order-payment,
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.order-card-top { justify-content: space-between; margin-bottom: 12px; }
+.order-card-top time { color: var(--muted); font-size: 0.72rem; }
+.customer-line strong { font-size: 0.83rem; }
+.customer-line small { margin-left: auto; color: var(--muted); font-size: 0.7rem; }
+.customer-avatar { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: var(--blue-soft); color: var(--blue-deep); font-weight: 800; }
+.order-place { margin: 12px 0; color: var(--muted); font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.order-payment { justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--line); font-size: 0.75rem; }
+.order-payment b { color: var(--ink); font-size: 0.9rem; }
+.order-observation { margin-top: 8px; color: var(--muted); font-size: 0.72rem; }
+.card-actions { margin-top: 12px; }
+.card-actions button { flex: 1; min-width: 0; padding: 8px 7px; font-size: 0.72rem; }
+.empty-panel { min-height: 280px; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 20px; text-align: center; color: rgba(255, 255, 255, 0.86); }
+.empty-panel strong { font-size: 0.82rem; }
+.empty-panel small { max-width: 170px; font-size: 0.72rem; }
+.empty-mark { width: 28px; height: 28px; border: 3px solid currentColor; border-radius: 50%; opacity: 0.8; }
+
+.settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.panel {
+  padding: 18px;
+}
+
+.editor-cover {
+  height: 90px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--coral) 0%, #ffb37b 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  margin-bottom: 18px;
+}
+
+.shop-editor,
+.operation-settings,
+.schedule-settings {
+  display: grid;
+  gap: 14px;
+}
+
+.operation-settings label,
+.shop-editor label {
+  display: grid;
+  gap: 8px;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.operation-settings input,
+.operation-settings select,
+.operation-settings textarea,
+.shop-editor input,
+.shop-editor textarea {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #fff;
+}
+
+.choice-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.choice-row input {
+  width: 18px;
+  height: 18px;
+}
+
+.hours-row {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.hours-day {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 700;
+}
+
+.hours-range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hours-range input {
+  width: 120px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fff;
+}
