@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS public.lojas (
     tipo VARCHAR(80) NOT NULL,
     descricao TEXT,
     foto_url TEXT,
+    capa_url TEXT,
     esta_aberta BOOLEAN NOT NULL DEFAULT TRUE,
     aceita_entrega BOOLEAN NOT NULL DEFAULT TRUE,
     aceita_retirada BOOLEAN NOT NULL DEFAULT TRUE,
@@ -60,6 +61,8 @@ CREATE TABLE IF NOT EXISTS public.lojas (
     CONSTRAINT lojas_tempo_entrega_check CHECK (tempo_entrega >= 0),
     CONSTRAINT lojas_tempo_retirada_check CHECK (tempo_retirada >= 0)
 );
+
+ALTER TABLE public.lojas ADD COLUMN IF NOT EXISTS capa_url TEXT;
 
 -- =============================================================
 -- TABELA: categorias

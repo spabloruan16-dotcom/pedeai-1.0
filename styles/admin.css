@@ -303,6 +303,47 @@
 .printer-option input { width: 18px; height: 18px; accent-color: var(--blue); }
 .printer-footer-field { margin-bottom: 18px; }
 
+.shop-settings-tabs {
+  display: flex;
+  width: min(480px, 100%);
+  margin-bottom: 18px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.shop-settings-tabs span { flex: 1; padding: 13px 14px; color: var(--muted); font-size: 0.8rem; font-weight: 700; }
+.shop-settings-tabs .active { background: var(--blue-soft); color: var(--blue); }
+
+.shop-settings-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr); gap: 18px; align-items: start; }
+.shop-profile-panel, .shop-link-panel, .shop-operation-panel, .shop-schedule-panel { padding: clamp(18px, 3vw, 28px); }
+.shop-profile-panel { grid-row: span 2; }
+.shop-profile-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; margin-bottom: 20px; }
+.shop-profile-heading h2 { margin: 8px 0 4px; font-size: 1.2rem; }
+.shop-profile-heading p, .shop-link-panel p { margin: 0; color: var(--muted); font-size: 0.82rem; }
+.shop-live-status { padding: 5px 9px; border-radius: 5px; background: #ddf5e7; color: #177c4e; font-size: 0.7rem; font-weight: 800; }
+.shop-cover-preview { display: flex; align-items: flex-end; gap: 12px; min-height: 160px; margin-bottom: 20px; padding: 18px; border-radius: 12px; background-color: #17445b; background-position: center; background-size: cover; color: #fff; }
+.shop-cover-logo { display: grid; place-items: center; width: 50px; height: 50px; overflow: hidden; border-radius: 13px; background: var(--coral); font-size: 1.3rem; font-weight: 800; }
+.shop-cover-logo img { width: 100%; height: 100%; object-fit: cover; }
+.shop-cover-preview strong, .shop-cover-preview small { display: block; }
+.shop-cover-preview small { margin-top: 3px; color: rgba(255,255,255,.75); font-size: .72rem; }
+.shop-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
+.shop-form-grid label, .shop-time-grid label { display: grid; gap: 7px; color: var(--ink); font-weight: 700; }
+.shop-form-grid input, .shop-form-grid textarea, .shop-time-grid input { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; background: #fff; }
+.shop-description-field { grid-column: 1 / -1; }
+.shop-link-panel h2 { margin: 8px 0 5px; font-size: 1.2rem; }
+.shop-link-box { display: flex; align-items: center; gap: 8px; margin: 20px 0 14px; padding: 9px; border: 1px solid var(--line); border-radius: 9px; background: #fafcfc; }
+.shop-link-box strong { min-width: 0; overflow: hidden; color: var(--ink); font-size: .75rem; text-overflow: ellipsis; white-space: nowrap; }
+.shop-link-box button { flex: 0 0 auto; padding: 8px 10px; }
+.shop-preview-button { width: 100%; }
+.shop-options-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+.shop-option { display: flex; align-items: center; gap: 10px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; }
+.shop-option input { width: 18px; height: 18px; accent-color: var(--blue); }
+.shop-option span { display: grid; gap: 3px; }
+.shop-option small, .shop-time-grid small { color: var(--muted); font-size: .72rem; }
+.shop-time-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
+
 .settings-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }

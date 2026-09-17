@@ -66,9 +66,43 @@
     align-items: stretch;
   }
 
+  .topbar-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
   .store-hero {
     grid-template-columns: 1fr;
+    min-height: 190px;
+    padding: 22px 16px;
   }
+
+  .customer-header { padding: 10px 14px; }
+  .customer-header .chat-shop-button { padding: 7px; font-size: 0; }
+  .customer-header .chat-shop-button:first-letter { font-size: 1rem; }
+  .customer-menu { padding: 0 14px 92px; }
+  .customer-categories { padding: 0 14px 12px; gap: 16px; }
+  .featured-products { grid-template-columns: repeat(3, minmax(130px, 1fr)); overflow-x: auto; }
+  .featured-products .customer-product { min-width: 130px; }
+  .featured-products .food-image { height: 110px; }
+  .customer-bottom-nav {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 20;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+    border-top: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 -8px 24px rgba(22, 28, 35, 0.1);
+  }
+  .customer-bottom-nav button { display: grid; justify-items: center; gap: 3px; border: 0; background: transparent; color: var(--muted); font-size: 1rem; }
+  .customer-bottom-nav button.active { color: var(--coral); }
+  .customer-bottom-nav small { font-size: 0.65rem; font-weight: 700; }
+  .floating-cart { right: 14px; bottom: 74px; }
 
   .printer-section-heading,
   .printer-card,
@@ -83,11 +117,18 @@
   .printer-model-cta { display: grid; }
   .printer-settings-grid,
   .printer-options-grid { grid-template-columns: 1fr; }
+
+  .shop-settings-layout { grid-template-columns: 1fr; }
+  .shop-profile-panel { grid-row: auto; }
 }
 
 @media (max-width: 560px) {
   .main-content { padding: 16px 12px 28px; }
   .topbar { margin-bottom: 14px; }
+  .topbar-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .topbar-actions .outline-button { grid-column: 1 / -1; }
+  .status-bubble { justify-content: flex-start; min-width: 0; padding-right: 8px; }
+  .status-bubble-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .page-intro h1 { font-size: 2rem; }
   .board-tools { gap: 8px; }
   .search-field { width: 100%; }
@@ -101,4 +142,11 @@
   .printer-tabs button { padding: 10px 8px; font-size: 0.75rem; }
   .order-config-header { display: grid; grid-template-columns: 1fr 1fr; }
   .order-config-pill { min-width: 0; }
+  .shop-settings-tabs span { padding: 10px 8px; font-size: .7rem; }
+  .shop-form-grid, .shop-options-grid, .shop-time-grid { grid-template-columns: 1fr; }
+  .shop-description-field { grid-column: auto; }
+  .shop-profile-heading { flex-direction: column; }
+  .shop-cover-preview { min-height: 135px; }
+  .shop-link-box { align-items: stretch; flex-direction: column; }
+  .shop-link-box button { width: 100%; }
 }

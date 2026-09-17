@@ -293,7 +293,8 @@ function merchantSetupView() {
       aceita_retirada: true,
       tempo_entrega: 45,
       tempo_retirada: 20,
-      foto_url: state.shop?.photo || null
+      foto_url: state.shop?.photo || null,
+      capa_url: state.shop?.cover || null
     };
 
     try {
@@ -321,6 +322,7 @@ function merchantSetupView() {
           type: shopData.tipo || shopData.type || '',
           description: shopData.descricao ?? shopData.description ?? '',
           photo: shopData.foto_url || shopData.photo_url || '',
+          cover: shopData.capa_url || '',
           isOpen: shopData.esta_aberta ?? shopData.is_open ?? true,
           schedule: defaultShopSchedule()
         };
@@ -333,6 +335,7 @@ function merchantSetupView() {
             descricao: description,
             public_id: payload.public_id,
             foto_url: payload.foto_url,
+            capa_url: payload.capa_url,
             esta_aberta: true,
             aceita_entrega: true,
             aceita_retirada: true,
@@ -355,6 +358,7 @@ function merchantSetupView() {
           type: shopType,
           description,
           photo: payload.foto_url || '',
+          cover: payload.capa_url || '',
           isOpen: true,
           schedule: state.shop.schedule || defaultShopSchedule()
         };
@@ -452,6 +456,7 @@ async function loadMerchantFromSupabase() {
       type: shop.tipo || shop.type || '',
       description: shop.descricao ?? shop.description ?? '',
       photo: shop.foto_url || shop.photo_url || '',
+      cover: shop.capa_url || '',
       isOpen: shop.esta_aberta ?? shop.is_open ?? true,
       schedule: defaultShopSchedule()
     };
@@ -654,6 +659,7 @@ async function registerMerchant(event) {
           tipo: shopType,
           descricao: '',
           foto_url: null,
+          capa_url: null,
           esta_aberta: true,
           aceita_entrega: true,
           aceita_retirada: true,
@@ -694,6 +700,7 @@ async function registerMerchant(event) {
       type: shopData.tipo || shopData.type || '',
       description: shopData.descricao ?? shopData.description ?? '',
       photo: shopData.foto_url || shopData.photo_url || '',
+      cover: shopData.capa_url || '',
       isOpen: shopData.esta_aberta ?? shopData.is_open ?? true,
       schedule: defaultShopSchedule()
     };
@@ -823,6 +830,7 @@ function unreadMessagesCount(type = 'merchant') {
 function merchantPanel() {
   const page = state.view;
   const revenue = state.orders.filter((order) => order.createdAt && order.createdAt > Date.now() - 86400000).reduce((sum, order) => sum + Number(order.total || 0), 0);
+  const printerConnected = state.printers.some((printer) => printer.status === 'Conectada');
 
   app.innerHTML = `
     <div class="shell">
@@ -871,7 +879,17 @@ function merchantPanel() {
       <main class="main-content">
         <header class="topbar">
           <div class="breadcrumb">PedeIA <span>/</span> ${page}</div>
-          <button class="outline-button" data-action="open-shop">Ver minha loja</button>
+          <div class="topbar-actions">
+            <button class="status-bubble ${state.shop.isOpen ? 'is-positive' : 'is-negative'}" data-action="toggle-open" title="${state.shop.isOpen ? 'Loja aberta' : 'Loja fechada'}">
+              <span class="status-bubble-icon store-status-icon">▣</span>
+              <span class="status-bubble-label">${state.shop.isOpen ? 'Aberta' : 'Fechada'}</span>
+            </button>
+            <button class="status-bubble ${printerConnected ? 'is-positive' : 'is-negative'}" data-view="printers" title="${printerConnected ? 'Impressora conectada' : 'Nenhuma impressora conectada'}">
+              <span class="status-bubble-icon printer-status-icon">▣</span>
+              <span class="status-bubble-label">${printerConnected ? 'Impressora conectada' : 'Sem impressora'}</span>
+            </button>
+            <button class="outline-button" data-action="open-shop">Ver minha loja</button>
+          </div>
         </header>
 
         ${page === 'orders' ? orderBoard() : page === 'dashboard' ? overview(revenue) : page === 'menu' ? menuView() : page === 'categories' ? categoryView() : page === 'chat' ? chatView() : page === 'printers' ? printersView() : settingsView()}
@@ -1284,44 +1302,62 @@ function settingsView() {
   return `
     <section class="page-intro">
       <div>
-        <p class="eyebrow">CONFIGURACAO DA OPERACAO</p>
+        <p class="eyebrow">CONFIGURACOES / MINHA LOJA</p>
         <h1>Minha loja</h1>
-        <p class="intro-copy">Escolha como sua loja recebe, prepara e entrega pedidos.</p>
+        <p class="intro-copy">Personalize sua vitrine e configure como os pedidos chegam até você.</p>
       </div>
     </section>
 
-    <section class="settings-grid">
-      <article class="panel shop-editor">
-        <div class="editor-cover"><span>PedeIA</span></div>
-        <div class="editor-body">
-          <label>Foto da loja<input type="file" accept="image/*" data-shop-photo></label>
+    <div class="shop-settings-tabs">
+      <span class="active">1. Identidade da loja</span>
+      <span>2. Operacao e horarios</span>
+    </div>
+
+    <section class="shop-settings-layout">
+      <article class="shop-profile-panel panel">
+        <div class="shop-profile-heading">
+          <div>
+            <span class="eyebrow">1. IDENTIDADE DA LOJA</span>
+            <h2>Como seus clientes encontram você</h2>
+            <p>Defina a imagem, o nome e a descrição que aparecem na vitrine.</p>
+          </div>
+          <span class="shop-live-status">${state.shop.isOpen ? 'Aberta' : 'Fechada'}</span>
+        </div>
+        <div class="shop-cover-preview" style="${state.shop.cover ? `background-image: linear-gradient(90deg, rgba(0,0,0,.64), rgba(0,0,0,.08)), url('${state.shop.cover}')` : ''}">
+          <div class="shop-cover-logo">${state.shop.photo ? `<img src="${state.shop.photo}" alt="">` : esc(state.shop.name.slice(0, 1).toUpperCase())}</div>
+          <div><strong>${esc(state.shop.name)}</strong><small>Prévia da sua vitrine</small></div>
+        </div>
+        <div class="shop-form-grid">
+          <label>Foto/logo da loja<input type="file" accept="image/*" data-shop-photo></label>
+          <label>Imagem de capa da vitrine<input type="file" accept="image/*" data-shop-cover></label>
           <label>Nome da loja<input data-setting="name" value="${esc(state.shop.name)}"></label>
-          <label>Descricao<textarea data-setting="description">${esc(state.shop.description)}</textarea></label>
-          <button class="primary-button" data-action="save-shop">Salvar loja</button>
+          <label class="shop-description-field">Descrição<textarea data-setting="description">${esc(state.shop.description)}</textarea></label>
         </div>
+        <button class="primary-button" data-action="save-shop">Salvar identidade</button>
       </article>
 
-      <article class="panel operation-settings">
-        <p class="eyebrow">FORMAS DE RECEBIMENTO</p>
-        <label class="choice-row"><input type="checkbox" data-delivery="delivery" ${state.delivery.delivery ? 'checked' : ''}><span><strong>Delivery</strong><small>Cliente recebe no endereco informado</small></span></label>
-        <label class="choice-row"><input type="checkbox" data-delivery="pickup" ${state.delivery.pickup ? 'checked' : ''}><span><strong>Retirada no local</strong><small>Cliente busca o pedido na loja</small></span></label>
-        <label>Tempo estimado para delivery<input type="number" min="1" data-delivery-min="deliveryMinutes" value="${state.delivery.deliveryMinutes}"> minutos</label>
-        <label>Tempo estimado para retirada<input type="number" min="1" data-delivery-min="pickupMinutes" value="${state.delivery.pickupMinutes}"> minutos</label>
-        <button class="primary-button" data-action="save-delivery">Salvar tempos</button>
-
-        <div class="settings-link">
-          <strong>${esc(shopLink())}</strong>
-          <button class="primary-button" data-action="copy">Copiar link</button>
-        </div>
+      <article class="shop-link-panel panel">
+        <span class="eyebrow">LINK PUBLICO</span>
+        <h2>Compartilhe sua vitrine</h2>
+        <p>Envie este endereço para seus clientes fazerem pedidos.</p>
+        <div class="shop-link-box"><strong>${esc(shopLink())}</strong><button class="secondary-button" data-action="copy">Copiar link</button></div>
+        <button class="outline-button shop-preview-button" data-action="open-shop">Abrir minha vitrine</button>
       </article>
 
-      <article class="panel schedule-settings">
-        <p class="eyebrow">HORARIOS DE FUNCIONAMENTO</p>
-        <h3>Configure os dias e o horario da semana</h3>
-        <div class="schedule-list">
-          ${scheduleRows}
+      <article class="operation-settings shop-operation-panel panel">
+        <div class="shop-profile-heading"><div><span class="eyebrow">2. OPERACAO</span><h2>Formas de recebimento</h2><p>Escolha como sua loja atende cada pedido.</p></div></div>
+        <div class="shop-options-grid">
+          <label class="shop-option"><input type="checkbox" data-delivery="delivery" ${state.delivery.delivery ? 'checked' : ''}><span><strong>Delivery</strong><small>Cliente recebe no endereço</small></span></label>
+          <label class="shop-option"><input type="checkbox" data-delivery="pickup" ${state.delivery.pickup ? 'checked' : ''}><span><strong>Retirada no local</strong><small>Cliente busca na loja</small></span></label>
         </div>
-        <button class="primary-button" data-action="save-shop-hours">Salvar horarios</button>
+        <div class="shop-time-grid"><label>Tempo de delivery<input type="number" min="1" data-delivery-min="deliveryMinutes" value="${state.delivery.deliveryMinutes}"><small>minutos</small></label><label>Tempo de retirada<input type="number" min="1" data-delivery-min="pickupMinutes" value="${state.delivery.pickupMinutes}"><small>minutos</small></label></div>
+        <button class="primary-button" data-action="save-delivery">Salvar operação</button>
+      </article>
+
+      <article class="schedule-settings shop-schedule-panel panel">
+        <div class="shop-profile-heading"><div><span class="eyebrow">3. HORARIOS</span><h2>Funcionamento semanal</h2><p>Informe quando sua loja estará disponível.</p></div></div>
+        <div class="schedule-list">${scheduleRows}</div>
+        <button class="primary-button" data-action="save-shop-hours">Salvar horários</button>
       </article>
     </section>
   `;
@@ -1337,18 +1373,19 @@ function customerShop() {
     .find((order) => cached.name && order.customer === cached.name);
 
   const customerChatBadge = unreadMessagesCount('customer') > 0 ? `<span class="chat-badge">${unreadMessagesCount('customer')}</span>` : '';
+  const featuredProducts = state.products.filter((product) => product.available).slice(0, 3);
   app.innerHTML = `
     <div class="customer-app">
       <header class="customer-header">
-        ${brand()}
+        <div class="customer-brand-mark">${state.shop.photo ? `<img src="${state.shop.photo}" alt="">` : esc(state.shop.name.slice(0, 1).toUpperCase())}</div>
+        <strong class="customer-store-name">${esc(state.shop.name)}</strong>
         <div class="customer-header-actions">
           <button class="chat-shop-button" data-action="customer-chat">${customerChatBadge}💬 Falar com a loja</button>
         </div>
       </header>
 
-      <section class="store-hero">
-        ${state.shop.photo ? `<img class="store-photo" src="${state.shop.photo}" alt="">` : '<div class="store-avatar-big"></div>'}
-        <div>
+      <section class="store-hero" style="${state.shop.cover ? `background-image: linear-gradient(90deg, rgba(0,0,0,.7), rgba(0,0,0,.12)), url('${state.shop.cover}')` : ''}">
+        <div class="store-hero-content">
           <span class="open-pill">${state.shop.isOpen ? 'Aberta agora' : 'Fechada'}</span>
           <h1>${esc(state.shop.name)}</h1>
           <p>${esc(state.shop.description)}</p>
@@ -1370,6 +1407,7 @@ function customerShop() {
         </nav>
 
         <main class="customer-menu">
+          ${featuredProducts.length ? `<section class="featured-section"><div class="category-heading"><h2>Destaques</h2><span>Mais pedidos</span></div><div class="customer-products featured-products">${featuredProducts.map(customerProduct).join('')}</div></section>` : ''}
           ${state.categories.length ? state.categories.map((category) => `
             <section id="${encodeURIComponent(category)}">
               <div class="category-heading">
@@ -1387,6 +1425,12 @@ function customerShop() {
       <button class="floating-cart ${state.cart.length ? '' : 'empty-floating'}" data-action="open-cart">
         Carrinho ${state.cart.length ? `· ${state.cart.length} item(s) · ${money(total)}` : ''}
       </button>
+      <nav class="customer-bottom-nav">
+        <button class="active" data-customer-view="menu">⌂<small>Inicio</small></button>
+        <button data-customer-view="tracking">▣<small>Pedidos</small></button>
+        <button data-action="open-cart">🛒<small>Sacola</small></button>
+        <button data-action="customer-chat">◌<small>Ajuda</small></button>
+      </nav>
     </div>
   `;
 
@@ -1575,6 +1619,22 @@ function bindMerchant() {
     if (!file) return;
     readImage(file, (image) => {
       state.shop.photo = image;
+      renderSaved();
+    });
+  });
+
+  document.querySelector('[data-shop-cover]')?.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+    readImage(file, async (image) => {
+      state.shop.cover = image;
+      if (state.shop.id && currentUser) {
+        const { error } = await supabaseClient
+          .from('lojas')
+          .update({ capa_url: image, updated_at: new Date().toISOString() })
+          .eq('id', state.shop.id);
+        if (error) console.error('Erro ao salvar capa da loja:', error);
+      }
       renderSaved();
     });
   });

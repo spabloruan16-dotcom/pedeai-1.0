@@ -183,6 +183,48 @@
   margin-bottom: 22px;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.status-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 12px 5px 6px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.status-bubble:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px var(--shadow);
+}
+
+.status-bubble-icon {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.status-bubble.is-positive .status-bubble-icon { background: var(--success); }
+.status-bubble.is-negative .status-bubble-icon { background: var(--danger); }
+.status-bubble.is-positive { border-color: rgba(50, 166, 109, 0.3); }
+.status-bubble.is-negative { border-color: rgba(217, 93, 93, 0.3); }
+
 .nav-icon {
   width: 20px;
   height: 20px;
