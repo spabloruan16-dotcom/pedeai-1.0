@@ -19,7 +19,37 @@
   .sidebar {
     border-right: none;
     border-bottom: 1px solid var(--line);
+    padding: 12px;
+    gap: 10px;
   }
+
+  .persistent-link,
+  .sidebar-bottom { display: none; }
+
+  .side-nav {
+    display: flex;
+    overflow-x: auto;
+    gap: 6px;
+    padding-bottom: 2px;
+  }
+
+  .side-nav button {
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
+    padding: 9px 11px;
+  }
+
+  .order-config-panel,
+  .order-config-header,
+  .order-config-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .order-board { grid-template-columns: 1fr; }
+  .board-column { min-height: 180px; }
+  .empty-panel { min-height: 120px; }
 
   .stats-grid,
   .settings-grid,
@@ -37,4 +67,17 @@
   .store-hero {
     grid-template-columns: 1fr;
   }
+}
+
+@media (max-width: 560px) {
+  .main-content { padding: 16px 12px 28px; }
+  .topbar { margin-bottom: 14px; }
+  .page-intro h1 { font-size: 2rem; }
+  .board-tools { gap: 8px; }
+  .search-field { width: 100%; }
+  .filter-pills { width: 100%; }
+  .filter-pills button { flex: 1; }
+  .shop-mini { padding: 10px; }
+  .order-config-header { display: grid; grid-template-columns: 1fr 1fr; }
+  .order-config-pill { min-width: 0; }
 }

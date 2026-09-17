@@ -7,7 +7,7 @@
 }
 
 .sidebar {
-  background: #fff;
+  background: linear-gradient(180deg, #062e54 0%, #075a8e 100%);
   border-right: 1px solid var(--line);
   padding: 20px 18px;
   display: flex;
@@ -19,8 +19,8 @@
 .profile-chip,
 .persistent-link,
 .sidebar-bottom {
-  background: #f9f5f2;
-  border: 1px solid var(--line);
+  background: rgba(3, 26, 55, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: 16px;
   padding: 12px 14px;
 }
@@ -47,11 +47,12 @@
 .profile-chip strong {
   display: block;
   font-size: 0.95rem;
+  color: #fff;
 }
 
 .shop-mini small,
 .profile-chip small {
-  color: var(--muted);
+  color: #a9d5eb;
   font-size: 0.75rem;
 }
 
@@ -94,7 +95,7 @@
 .persistent-link span {
   display: block;
   font-size: 0.66rem;
-  color: var(--muted);
+  color: #8fc8e6;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
@@ -104,7 +105,7 @@
   margin-top: 6px;
   font-size: 0.8rem;
   word-break: break-all;
-  color: var(--ink);
+  color: #fff;
 }
 
 .side-nav {
@@ -122,14 +123,15 @@
   background: transparent;
   border-radius: 12px;
   text-align: left;
-  color: var(--ink);
+  color: #b8dff0;
   font-weight: 700;
 }
 
 .side-nav button.active {
-  background: var(--coral-soft);
-  border-color: rgba(244, 81, 44, 0.08);
-  color: var(--coral);
+  background: #0984ca;
+  border-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(0, 26, 57, 0.18);
 }
 
 .sidebar-bottom {
@@ -143,7 +145,7 @@
   border: none;
   background: transparent;
   padding: 0;
-  color: var(--muted);
+  color: #a9d5eb;
 }
 
 .profile-chip {
@@ -154,7 +156,9 @@
 }
 
 .main-content {
-  padding: 26px 28px 40px;
+  padding: 24px clamp(18px, 3vw, 42px) 40px;
+  min-width: 0;
+  background: #f6f8f8;
 }
 
 .topbar {
@@ -163,6 +167,24 @@
   justify-content: space-between;
   margin-bottom: 22px;
 }
+
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  display: grid;
+  place-items: center;
+  color: currentColor;
+  font-size: 1rem;
+}
+
+.nav-icon::before { content: '•'; }
+.nav-icon.orders::before { content: '▣'; }
+.nav-icon.home::before { content: '⌂'; }
+.nav-icon.menu::before { content: '▤'; }
+.nav-icon.categories::before { content: '⌘'; }
+.nav-icon.chat::before { content: '◌'; }
+.nav-icon.settings::before { content: '⚙'; }
 
 .breadcrumb {
   color: var(--muted);

@@ -3,6 +3,13 @@
   --coral: #f4512c;
   --coral-strong: #d93d17;
   --coral-soft: #fff4ef;
+  --blue: #087fc4;
+  --blue-deep: #07345c;
+  --blue-soft: #e8f7ff;
+  --cyan: #bcefe9;
+  --board-red: #f16b78;
+  --board-amber: #f0a23a;
+  --board-green: #32a77b;
   --ink: #1f2430;
   --muted: #67707d;
   --bg: #f5f3f0;
@@ -24,6 +31,10 @@ html, body {
   font-family: 'DM Sans', sans-serif;
   background: var(--bg);
   color: var(--ink);
+}
+
+body {
+  overflow-x: hidden;
 }
 
 body {

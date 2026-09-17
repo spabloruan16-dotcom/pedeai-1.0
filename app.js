@@ -956,6 +956,11 @@ function orderBoard() {
       <button class="primary-button" data-action="copy">Compartilhar loja</button>
     </section>
 
+    <div class="board-alert" role="status">
+      <span class="board-alert-icon">!</span>
+      <span>Pedidos novos aparecem aqui em tempo real enquanto sua loja estiver aberta.</span>
+    </div>
+
     <div class="board-tools">
       <div class="search-field">
         <span>Buscar</span>
