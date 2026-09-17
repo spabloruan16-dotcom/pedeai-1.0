@@ -49,6 +49,8 @@
   font-size: 1.05rem;
 }
 
+.customer-header-icon:hover { background: var(--coral-soft); transform: translateY(-2px); }
+
 .chat-shop-button {
   border: 1px solid var(--line);
   background: #fff;
@@ -124,6 +126,8 @@
   color: var(--coral);
 }
 
+.customer-tabs button:hover:not(.active) { color: var(--coral); background: #fff8f4; }
+
 .delivery-banner {
   display: flex;
   align-items: center;
@@ -163,7 +167,10 @@
 
 .customer-categories a { color: var(--ink); font-size: 0.82rem; font-weight: 700; text-decoration: none; }
 .customer-categories a:first-child { color: var(--coral); }
+.customer-categories a:hover { color: var(--coral); }
 .featured-section { padding-top: 18px; }
+.featured-section, .repeat-section, .customer-menu > section { animation: fade-in-up 420ms var(--ease-out) both; }
+.repeat-section { animation-delay: 60ms; }
 .featured-products { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .featured-products .customer-product { min-width: 0; }
 .featured-products .food-image { height: 150px; }
@@ -181,10 +188,16 @@
   overflow: hidden;
 }
 
+.customer-product:hover { transform: translateY(-5px); border-color: rgba(244, 81, 44, 0.28); box-shadow: 0 16px 28px rgba(25, 29, 36, 0.12); }
+
 .food-image {
   height: 140px;
   background: linear-gradient(135deg, #f5eee9, #efe4dd);
+  overflow: hidden;
 }
+
+.food-image img { width: 100%; height: 100%; object-fit: cover; transition: transform 420ms var(--ease-out); }
+.customer-product:hover .food-image img { transform: scale(1.05); }
 
 .customer-product-info {
   padding: 14px;
@@ -201,6 +214,8 @@
   font-weight: 700;
 }
 
+.add-food:hover { background: var(--coral-strong); transform: translateY(-1px); box-shadow: 0 8px 16px rgba(244, 81, 44, 0.22); }
+
 .floating-cart {
   position: fixed;
   right: 22px;
@@ -213,6 +228,8 @@
   font-weight: 700;
   box-shadow: 0 18px 28px rgba(22, 28, 35, 0.18);
 }
+
+.floating-cart:hover { transform: translateY(-3px); box-shadow: 0 22px 34px rgba(22, 28, 35, 0.24); }
 
 .customer-bottom-nav { display: none; }
 

@@ -58,6 +58,8 @@
   box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08);
 }
 
+.auth-tabs button:hover:not(.selected) { color: var(--ink); background: rgba(255, 255, 255, 0.55); }
+
 .auth-form {
   display: grid;
   gap: 16px;
@@ -83,6 +85,18 @@
   background: var(--panel);
   color: var(--ink);
   padding: 12px 14px;
+}
+
+.auth-form input:hover,
+.auth-form select:hover,
+.auth-form textarea:hover { border-color: #b9c7cf; }
+
+.auth-form input:focus,
+.auth-form select:focus,
+.auth-form textarea:focus {
+  outline: 0;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 4px rgba(8, 127, 196, 0.1);
 }
 
 .auth-form textarea {
@@ -111,6 +125,11 @@
   color: #fff;
   box-shadow: 0 12px 18px rgba(244, 81, 44, 0.18);
 }
+
+.primary-button:hover { transform: translateY(-2px); box-shadow: 0 16px 26px rgba(244, 81, 44, 0.26); }
+.secondary-button:hover { background: #eee1d8; transform: translateY(-1px); }
+.outline-button:hover { border-color: var(--coral); color: var(--coral); background: var(--coral-soft); transform: translateY(-1px); }
+.text-button:hover { color: var(--coral-strong); text-decoration: underline; }
 
 .secondary-button {
   background: #f6efe9;

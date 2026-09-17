@@ -19,6 +19,11 @@
   --success: #32a66d;
   --warning: #f4b740;
   --danger: #d95d5d;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 * {
@@ -54,8 +59,62 @@ button {
   cursor: pointer;
 }
 
+button,
+a,
+input,
+textarea,
+select,
+.panel,
+.stat-card,
+.customer-product,
+.order-card,
+.side-nav button,
+.shop-option,
+.printer-card {
+  transition: color 180ms var(--ease-soft), background-color 180ms var(--ease-soft),
+    border-color 180ms var(--ease-soft), box-shadow 220ms var(--ease-out),
+    transform 220ms var(--ease-out), opacity 180ms var(--ease-soft);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 3px solid rgba(8, 127, 196, 0.28);
+  outline-offset: 2px;
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px) scale(0.985);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 #app {
   min-height: 100vh;
+}
+
+#app > * {
+  animation: page-enter 420ms var(--ease-out) both;
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modal-enter {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .dialog-overlay,
@@ -68,6 +127,7 @@ button {
   padding: 18px;
   background: rgba(5, 24, 42, 0.58);
   backdrop-filter: blur(4px);
+  animation: fade-in-up 180ms var(--ease-soft) both;
 }
 
 .dialog-modal,
@@ -81,6 +141,7 @@ button {
   background: #fff;
   box-shadow: 0 24px 70px rgba(1, 25, 49, 0.3);
   color: var(--ink);
+  animation: modal-enter 360ms var(--ease-out) both;
 }
 
 .modal-close {
@@ -92,6 +153,8 @@ button {
   color: var(--muted);
 }
 
+.modal-close:hover { border-color: var(--coral); color: var(--coral); background: var(--coral-soft); }
+
 .dialog-head { clear: both; padding-top: 12px; margin-bottom: 20px; }
 .dialog-head h2 { margin: 8px 0; font-size: clamp(1.35rem, 4vw, 2rem); }
 .dialog-head p { margin: 0; color: var(--muted); }
@@ -99,7 +162,18 @@ button {
 .dialog-form, .chat-compose { display: grid; gap: 14px; }
 .dialog-form label, .chat-compose label { display: grid; gap: 7px; color: var(--ink); font-weight: 700; }
 .dialog-form input, .dialog-form textarea, .dialog-form select, .chat-compose input { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; background: #fff; color: var(--ink); }
+.dialog-form input:hover, .dialog-form textarea:hover, .dialog-form select:hover, .chat-compose input:hover { border-color: #b9c7cf; }
+.dialog-form input:focus, .dialog-form textarea:focus, .dialog-form select:focus, .chat-compose input:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(8, 127, 196, 0.1); outline: 0; }
 .chat-messages { display: grid; gap: 9px; max-height: 300px; overflow: auto; margin-bottom: 16px; }
 .message { max-width: 85%; padding: 10px 12px; border-radius: 12px 12px 12px 3px; background: var(--blue-soft); color: var(--ink); }
 .message.mine { justify-self: end; border-radius: 12px 12px 3px 12px; background: var(--coral-soft); }
 .message small { display: block; margin-top: 5px; color: var(--muted); font-size: 0.7rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}

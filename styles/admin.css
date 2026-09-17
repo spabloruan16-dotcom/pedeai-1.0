@@ -77,6 +77,8 @@
   box-shadow: 0 2px 8px rgba(25, 29, 36, 0.05);
 }
 
+.filter-pills button:hover:not(.selected) { color: var(--ink); background: rgba(255, 255, 255, 0.7); }
+
 .order-config-panel {
   display: flex;
   align-items: center;
@@ -188,6 +190,8 @@
   box-shadow: 0 5px 12px rgba(25, 29, 36, 0.12);
 }
 
+.order-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(25, 29, 36, 0.16); }
+
 .order-card-top,
 .customer-line,
 .order-payment,
@@ -236,9 +240,14 @@
 
 .printer-tabs button:last-child { border-right: 0; }
 .printer-tabs button.active { background: var(--blue-soft); color: var(--blue); }
+.printer-tabs button:hover:not(.active) { background: #f7fafb; color: var(--ink); }
 
 .printer-list-panel,
 .printer-model-panel { padding: clamp(18px, 3vw, 28px); }
+
+.printer-card,
+.printer-model-cta { animation: fade-in-up 420ms var(--ease-out) both; }
+.printer-model-cta { animation-delay: 90ms; }
 
 .printer-section-heading {
   display: flex;
@@ -273,6 +282,7 @@
 }
 
 .printer-card-info { min-width: 0; }
+.printer-card:hover { transform: translateY(-2px); }
 .printer-card-info strong { display: block; margin: 8px 0 3px; font-size: 1rem; }
 .printer-card-info small { color: var(--muted); }
 .printer-card-info p { max-width: 650px; margin: 14px 0 0; color: var(--muted); font-size: 0.82rem; }
@@ -316,6 +326,7 @@
 .shop-settings-tabs button { flex: 1; border: 0; border-right: 1px solid var(--line); padding: 13px 14px; background: #fff; color: var(--muted); font-size: 0.8rem; font-weight: 700; text-align: left; }
 .shop-settings-tabs button:last-child { border-right: 0; }
 .shop-settings-tabs .active { background: var(--blue-soft); color: var(--blue); }
+.shop-settings-tabs button:hover:not(.active) { background: #f7fafb; color: var(--ink); }
 
 .shop-tab-content.hidden { display: none; }
 
@@ -343,6 +354,7 @@
 .shop-options-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
 .shop-option { display: flex; align-items: center; gap: 10px; padding: 13px; border: 1px solid var(--line); border-radius: 10px; }
 .shop-option input { width: 18px; height: 18px; accent-color: var(--blue); }
+.shop-option:hover { border-color: rgba(8, 127, 196, 0.4); background: #fbfeff; transform: translateY(-1px); }
 .shop-option span { display: grid; gap: 3px; }
 .shop-option small, .shop-time-grid small { color: var(--muted); font-size: .72rem; }
 .shop-time-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
