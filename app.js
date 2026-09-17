@@ -292,7 +292,7 @@ function merchantSetupView() {
       aceita_retirada: true,
       tempo_entrega: 45,
       tempo_retirada: 20,
-      photo_url: state.shop?.photo || null
+      foto_url: state.shop?.photo || null
     };
 
     try {
@@ -319,7 +319,7 @@ function merchantSetupView() {
           name: shopData.nome || shopData.name || '',
           type: shopData.tipo || shopData.type || '',
           description: shopData.descricao ?? shopData.description ?? '',
-          photo: shopData.photo_url || '',
+          photo: shopData.foto_url || shopData.photo_url || '',
           isOpen: shopData.esta_aberta ?? shopData.is_open ?? true,
           schedule: defaultShopSchedule()
         };
@@ -331,7 +331,7 @@ function merchantSetupView() {
             tipo: shopType,
             descricao: description,
             public_id: payload.public_id,
-            photo_url: payload.photo_url,
+            foto_url: payload.foto_url,
             esta_aberta: true,
             aceita_entrega: true,
             aceita_retirada: true,
@@ -353,7 +353,7 @@ function merchantSetupView() {
           name: shopName,
           type: shopType,
           description,
-          photo: payload.photo_url || '',
+          photo: payload.foto_url || '',
           isOpen: true,
           schedule: state.shop.schedule || defaultShopSchedule()
         };
@@ -450,7 +450,7 @@ async function loadMerchantFromSupabase() {
       name: shop.nome || shop.name || '',
       type: shop.tipo || shop.type || '',
       description: shop.descricao ?? shop.description ?? '',
-      photo: shop.photo_url || '',
+      photo: shop.foto_url || shop.photo_url || '',
       isOpen: shop.esta_aberta ?? shop.is_open ?? true,
       schedule: defaultShopSchedule()
     };
@@ -652,7 +652,7 @@ async function registerMerchant(event) {
           nome: shopName,
           tipo: shopType,
           descricao: '',
-          photo_url: null,
+          foto_url: null,
           esta_aberta: true,
           aceita_entrega: true,
           aceita_retirada: true,
@@ -692,7 +692,7 @@ async function registerMerchant(event) {
       name: shopData.nome || shopData.name || '',
       type: shopData.tipo || shopData.type || '',
       description: shopData.descricao ?? shopData.description ?? '',
-      photo: shopData.photo_url || '',
+      photo: shopData.foto_url || shopData.photo_url || '',
       isOpen: shopData.esta_aberta ?? shopData.is_open ?? true,
       schedule: defaultShopSchedule()
     };
