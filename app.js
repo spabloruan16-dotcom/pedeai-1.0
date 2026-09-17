@@ -180,6 +180,17 @@ function merchantLogged() {
   return !!currentUser;
 }
 
+function clearMerchantState() {
+  state.merchant = null;
+  state.shop = null;
+  state.categories = [];
+  state.products = [];
+  state.orders = [];
+  state.ratings = [];
+  state.messages = [];
+  state.cart = [];
+}
+
 function brand() {
   return '<a class="brand" href="/"><span class="brand-mark">P</span><span class="brand-word"><span class="brand-pede">Pede</span><span class="brand-ia">IA</span></span></a>';
 }
@@ -402,6 +413,7 @@ async function loadMerchantFromSupabase() {
 
   if (merchantError) {
     console.error('Erro ao carregar comerciante:', merchantError);
+    clearMerchantState();
     return;
   }
 
@@ -421,6 +433,12 @@ async function loadMerchantFromSupabase() {
 
   if (shopError) {
     console.error('Erro ao carregar loja:', shopError);
+    state.shop = null;
+    state.categories = [];
+    state.products = [];
+    state.orders = [];
+    state.ratings = [];
+    state.messages = [];
     return;
   }
 
@@ -741,6 +759,8 @@ async function loginMerchant(event) {
 
     currentUser = authData.user;
     currentSession = authData.session;
+
+    clearMerchantState();
 
     await loadMerchantFromSupabase();
 
