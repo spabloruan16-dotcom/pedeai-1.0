@@ -1,0 +1,40 @@
+/* Ajustes responsivos */
+@media (max-width: 980px) {
+  .auth-screen {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-art {
+    padding: 30px 20px;
+  }
+
+  .auth-card {
+    padding: 28px 20px 40px;
+  }
+
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .stats-grid,
+  .settings-grid,
+  .live-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .page-intro,
+  .topbar,
+  .board-tools {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .store-hero {
+    grid-template-columns: 1fr;
+  }
+}

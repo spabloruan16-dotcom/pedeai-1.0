@@ -1,0 +1,141 @@
+/* Estilos para a página pública da loja */
+.customer-app {
+  min-height: 100vh;
+  background: #fffaf7;
+}
+
+.customer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.9);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.customer-header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.chat-shop-button {
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-weight: 700;
+}
+
+.store-hero {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  gap: 24px;
+  padding: 28px 22px;
+  background: linear-gradient(135deg, #fff 0%, #fff7f1 100%);
+}
+
+.store-photo {
+  width: 180px;
+  height: 180px;
+  border-radius: 24px;
+  object-fit: cover;
+  border: 1px solid var(--line);
+}
+
+.store-avatar-big {
+  width: 180px;
+  height: 180px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #ffd7bf, #f8b185);
+}
+
+.open-pill {
+  display: inline-block;
+  background: #eafaf2;
+  color: #1d8553;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.customer-tabs {
+  display: flex;
+  gap: 10px;
+  padding: 0 22px 20px;
+}
+
+.customer-tabs button {
+  border: none;
+  background: transparent;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.customer-tabs button.active {
+  background: var(--coral-soft);
+  color: var(--coral);
+}
+
+.customer-menu {
+  padding: 0 22px 120px;
+}
+
+.customer-products {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.customer-product {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.food-image {
+  height: 140px;
+  background: linear-gradient(135deg, #f5eee9, #efe4dd);
+}
+
+.customer-product-info {
+  padding: 14px;
+}
+
+.add-food {
+  width: calc(100% - 28px);
+  margin: 0 14px 14px;
+  border: none;
+  border-radius: 10px;
+  background: var(--coral);
+  color: #fff;
+  padding: 10px 12px;
+  font-weight: 700;
+}
+
+.floating-cart {
+  position: fixed;
+  right: 22px;
+  bottom: 24px;
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 14px 18px;
+  font-weight: 700;
+  box-shadow: 0 18px 28px rgba(22, 28, 35, 0.18);
+}
+
+.customer-empty {
+  background: #fff;
+  border: 1px dashed var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  color: var(--muted);
+}

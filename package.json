@@ -1,0 +1,20 @@
+{
+  "name": "pedeia",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PedeIA, plataforma de pedidos por link para comercios locais",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.18.2"
+  }
+}
