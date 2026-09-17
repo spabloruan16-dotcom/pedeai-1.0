@@ -155,6 +155,8 @@ CREATE TABLE IF NOT EXISTS public.mensagens (
     tipo_remetente VARCHAR(20) NOT NULL,
     remetente_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
     mensagem TEXT NOT NULL,
+    vista_pelo_comerciante BOOLEAN NOT NULL DEFAULT FALSE,
+    vista_pelo_cliente BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT mensagens_tipo_check CHECK (tipo_remetente IN ('customer', 'merchant'))
 );

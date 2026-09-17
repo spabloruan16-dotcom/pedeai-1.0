@@ -266,7 +266,9 @@ async function persistMessageToSupabase(message, orderId = null) {
   const { error } = await supabaseClient.from('mensagens').insert({
     pedido_id: orderId,
     tipo_remetente: message.from,
-    mensagem: message.text
+    mensagem: message.text,
+    vista_pelo_comerciante: message.vistaPeloComerciante || false,
+    vista_pelo_cliente: message.vistaPeloCliente || false
   });
   if (error) console.error('Erro ao salvar mensagem no Supabase:', error);
 }
@@ -520,6 +522,7 @@ function render() {
 
   if (!merchantLogged() || !state.merchant) return authView();
   if (!state.shop || !shopIsConfigured()) return merchantSetupView();
+  if (state.view === 'chat') markMessagesAsRead('merchant');
   merchantPanel();
 }
 
@@ -685,7 +688,9 @@ async function loadOrdersAndMessagesFromSupabase() {
       from: message.tipo_remetente,
       text: message.mensagem,
       time: new Date(message.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      scope: message.pedido_id ? 'order' : 'store'
+      scope: message.pedido_id ? 'order' : 'store',
+      vistaPeloComerciante: message.vista_pelo_comerciante,
+      vistaPeloCliente: message.vista_pelo_cliente
     }));
   }
 }
@@ -1036,9 +1041,34 @@ function nav(view, icon, text, count = '') {
 
 function unreadMessagesCount(type = 'merchant') {
   if (type === 'merchant') {
-    return state.messages.filter((msg) => (msg.scope === 'order' || msg.scope === 'store') && msg.from !== 'merchant').length;
+    return state.messages.filter((msg) => (msg.scope === 'order' || msg.scope === 'store') && msg.from !== 'merchant' && !msg.vistaPeloComerciante).length;
   }
-  return state.messages.filter((msg) => msg.scope === 'store' && msg.from === 'merchant').length;
+  return state.messages.filter((msg) => msg.scope === 'store' && msg.from === 'merchant' && !msg.vistaPeloCliente).length;
+}
+
+function markMessagesAsRead(reader, scope = null) {
+  const field = reader === 'merchant' ? 'vistaPeloComerciante' : 'vistaPeloCliente';
+  const sender = reader === 'merchant' ? 'merchant' : 'customer';
+  let changed = false;
+
+  state.messages.forEach((message) => {
+    if ((!scope || message.scope === scope) && message.from !== sender && !message[field]) {
+      message[field] = true;
+      changed = true;
+    }
+  });
+
+  if (changed) save();
+
+  if (changed && typeof supabaseClient !== 'undefined') {
+    const updates = state.messages
+      .filter((message) => message[field] && isUuid(message.id))
+      .map((message) => supabaseClient
+        .from('mensagens')
+        .update({ [field === 'vistaPeloComerciante' ? 'vista_pelo_comerciante' : 'vista_pelo_cliente']: true })
+        .eq('id', message.id));
+    void Promise.all(updates);
+  }
 }
 
 function merchantPanel() {
@@ -1399,6 +1429,7 @@ function categoryView() {
 }
 
 function chatView() {
+  markMessagesAsRead('merchant');
   const messages = state.messages.filter((msg) => msg.scope === 'order' || msg.scope === 'store');
   return `
     <section class="page-intro">
@@ -2446,6 +2477,8 @@ function checkoutDialog() {
 }
 
 function customerChat() {
+  markMessagesAsRead('customer', 'store');
+  document.querySelectorAll('.chat-badge').forEach((badge) => badge.remove());
   const storeMessages = state.messages.filter((msg) => msg.scope === 'store' || msg.from === 'merchant');
   showDialog(`
     <div class="dialog-head">
