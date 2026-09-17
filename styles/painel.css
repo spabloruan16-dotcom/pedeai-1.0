@@ -168,6 +168,49 @@
   margin-bottom: 22px;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.status-orb {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 46px;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  text-align: left;
+  box-shadow: 0 5px 14px rgba(25, 29, 36, 0.06);
+}
+
+.status-orb-dot {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: #a7b0b7;
+  box-shadow: 0 0 0 4px rgba(167, 176, 183, 0.16);
+}
+
+.status-orb.is-on .status-orb-dot {
+  background: #21a868;
+  box-shadow: 0 0 0 4px rgba(33, 168, 104, 0.16);
+}
+
+.status-orb.is-warning .status-orb-dot {
+  background: #eea329;
+  box-shadow: 0 0 0 4px rgba(238, 163, 41, 0.16);
+}
+
+.status-orb-copy { display: grid; gap: 1px; }
+.status-orb-copy strong { font-size: 0.76rem; }
+.status-orb-copy small { color: var(--muted); font-size: 0.68rem; }
+
 .nav-icon {
   width: 20px;
   height: 20px;

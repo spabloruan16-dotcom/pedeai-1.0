@@ -819,6 +819,10 @@ function unreadMessagesCount(type = 'merchant') {
   return state.messages.filter((msg) => msg.scope === 'store' && msg.from === 'merchant').length;
 }
 
+function printerIsConnected() {
+  return state.printers.some((printer) => printer.status === 'Conectada');
+}
+
 function merchantPanel() {
   const page = state.view;
   const revenue = state.orders.filter((order) => order.createdAt && order.createdAt > Date.now() - 86400000).reduce((sum, order) => sum + Number(order.total || 0), 0);
@@ -831,8 +835,8 @@ function merchantPanel() {
           <div class="shop-avatar">${state.shop.photo ? `<img src="${state.shop.photo}" alt="">` : esc(state.shop.name[0])}</div>
           <div>
             <strong>${esc(state.shop.name)}</strong>
-            <small>${state.shop.isOpen ? 'Aberta agora' : 'Fechada'}</small>
-          </div>
+            <button class="${state.customerView === 'menu' ? 'active' : ''}" data-customer-view="menu"><span>⌂</span>Inicio</button>
+            <button class="${state.customerView === 'tracking' ? 'active' : ''}" data-customer-view="tracking"><span>▣</span>Pedidos</button>
           <button class="toggle-store ${state.shop.isOpen ? 'on' : 'off'}" data-action="toggle-open"><span></span></button>
         </div>
 
@@ -870,7 +874,17 @@ function merchantPanel() {
       <main class="main-content">
         <header class="topbar">
           <div class="breadcrumb">PedeIA <span>/</span> ${page}</div>
-          <button class="outline-button" data-action="open-shop">Ver minha loja</button>
+          <div class="topbar-actions">
+            <button class="status-orb ${state.shop.isOpen ? 'is-on' : 'is-off'}" data-action="toggle-open" title="${state.shop.isOpen ? 'Loja aberta' : 'Loja fechada'}">
+              <span class="status-orb-dot"></span>
+              <span class="status-orb-copy"><strong>Loja</strong><small>${state.shop.isOpen ? 'Aberta' : 'Fechada'}</small></span>
+            </button>
+            <button class="status-orb ${printerIsConnected() ? 'is-on' : 'is-warning'}" data-view="printers" title="Abrir impressoras">
+              <span class="status-orb-dot"></span>
+              <span class="status-orb-copy"><strong>Impressora</strong><small>${printerIsConnected() ? 'Conectada' : 'Desconectada'}</small></span>
+            </button>
+            <button class="outline-button" data-action="open-shop">Ver minha loja</button>
+          </div>
         </header>
 
         ${page === 'orders' ? orderBoard() : page === 'dashboard' ? overview(revenue) : page === 'menu' ? menuView() : page === 'categories' ? categoryView() : page === 'chat' ? chatView() : page === 'printers' ? printersView() : settingsView()}
@@ -1311,26 +1325,29 @@ function customerShop() {
     .find((order) => cached.name && order.customer === cached.name);
 
   const customerChatBadge = unreadMessagesCount('customer') > 0 ? `<span class="chat-badge">${unreadMessagesCount('customer')}</span>` : '';
+  const featuredProducts = state.products.filter((item) => item.available).slice(0, 3);
   app.innerHTML = `
     <div class="customer-app">
       <header class="customer-header">
-        ${brand()}
+        <div class="customer-brand-block">
+          <div class="customer-store-mark">${esc(String(state.shop.name || 'L').slice(0, 1).toUpperCase())}</div>
+          <div><strong>${esc(state.shop.name)}</strong><small>${state.shop.isOpen ? 'Aberta agora' : 'Fechada'}</small></div>
+        </div>
         <div class="customer-header-actions">
-          <button class="chat-shop-button" data-action="customer-chat">${customerChatBadge}💬 Falar com a loja</button>
+          <button class="customer-icon-button" data-action="customer-chat" aria-label="Falar com a loja">${customerChatBadge}◌</button>
         </div>
       </header>
 
       <section class="store-hero">
-        ${state.shop.photo ? `<img class="store-photo" src="${state.shop.photo}" alt="">` : '<div class="store-avatar-big"></div>'}
         <div>
-          <span class="open-pill">${state.shop.isOpen ? 'Aberta agora' : 'Fechada'}</span>
-          <h1>${esc(state.shop.name)}</h1>
+          <span class="store-kicker">${esc(state.shop.type)} · pedido mínimo R$ 0,00</span>
+          <h1>Peça seus favoritos<br><em>sem sair de casa.</em></h1>
           <p>${esc(state.shop.description)}</p>
-          <small>${esc(state.shop.type)}</small>
         </div>
+        ${state.shop.photo ? `<img class="store-photo" src="${state.shop.photo}" alt="${esc(state.shop.name)}">` : '<div class="store-hero-art"><span>🍔</span><span>🥤</span><span>🍟</span></div>'}
       </section>
 
-      <nav class="customer-tabs">
+      <nav class="customer-tabs customer-primary-tabs">
         <button class="${state.customerView === 'menu' ? 'active' : ''}" data-customer-view="menu">Cardapio</button>
         <button class="${state.customerView === 'tracking' ? 'active' : ''}" data-customer-view="tracking">Acompanhar pedido</button>
       </nav>
@@ -1340,10 +1357,12 @@ function customerShop() {
       ${state.customerView === 'menu' ? `
         ${tracked ? customerTracker(tracked) : ''}
         <nav class="customer-categories">
+          <a class="active" href="#destaques">Destaques</a>
           ${state.categories.map((category) => `<a href="#${encodeURIComponent(category)}">${esc(category)}</a>`).join('')}
         </nav>
 
         <main class="customer-menu">
+          ${featuredProducts.length ? `<section id="destaques" class="featured-section"><div class="category-heading"><div><span class="section-kicker">ESCOLHAS DA CASA</span><h2>Mais pedidos</h2></div><span>Ver todos</span></div><div class="featured-products">${featuredProducts.map(customerProduct).join('')}</div></section>` : ''}
           ${state.categories.length ? state.categories.map((category) => `
             <section id="${encodeURIComponent(category)}">
               <div class="category-heading">
@@ -1359,8 +1378,14 @@ function customerShop() {
       ` : ''}
 
       <button class="floating-cart ${state.cart.length ? '' : 'empty-floating'}" data-action="open-cart">
-        Carrinho ${state.cart.length ? `· ${state.cart.length} item(s) · ${money(total)}` : ''}
+        <span>🛒</span> Carrinho ${state.cart.length ? `· ${state.cart.length} item(s) · ${money(total)}` : ''}
       </button>
+      <nav class="customer-bottom-nav">
+        <button class="active" data-customer-view="menu"><span>⌂</span>Inicio</button>
+        <button data-customer-view="tracking"><span>▣</span>Pedidos</button>
+        <button data-action="customer-chat"><span>◌</span>Suporte</button>
+        <button data-action="open-cart"><span>🛒</span>Carrinho${state.cart.length ? `<b>${state.cart.length}</b>` : ''}</button>
+      </nav>
     </div>
   `;
 
