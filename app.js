@@ -1284,6 +1284,7 @@ function printersView() {
 }
 
 function settingsView() {
+  const activeSettingsTab = state.shopSettingsTab || 'identity';
   const schedule = state.shop.schedule || defaultShopSchedule();
   const scheduleRows = weekDays.map((day) => {
     const config = schedule[day] || { enabled: true, open: '11:00', close: '22:00' };
@@ -1309,12 +1310,13 @@ function settingsView() {
     </section>
 
     <div class="shop-settings-tabs">
-      <span class="active">1. Identidade da loja</span>
-      <span>2. Operacao e horarios</span>
+      <button class="${activeSettingsTab === 'identity' ? 'active' : ''}" data-shop-settings-tab="identity">1. Identidade da loja</button>
+      <button class="${activeSettingsTab === 'operation' ? 'active' : ''}" data-shop-settings-tab="operation">2. Operação</button>
+      <button class="${activeSettingsTab === 'hours' ? 'active' : ''}" data-shop-settings-tab="hours">3. Horários</button>
     </div>
 
     <section class="shop-settings-layout">
-      <article class="shop-profile-panel panel">
+      <article class="shop-profile-panel panel shop-tab-content ${activeSettingsTab === 'identity' ? 'active' : 'hidden'}">
         <div class="shop-profile-heading">
           <div>
             <span class="eyebrow">1. IDENTIDADE DA LOJA</span>
@@ -1336,7 +1338,7 @@ function settingsView() {
         <button class="primary-button" data-action="save-shop">Salvar identidade</button>
       </article>
 
-      <article class="shop-link-panel panel">
+      <article class="shop-link-panel panel shop-tab-content ${activeSettingsTab === 'identity' ? 'active' : 'hidden'}">
         <span class="eyebrow">LINK PUBLICO</span>
         <h2>Compartilhe sua vitrine</h2>
         <p>Envie este endereço para seus clientes fazerem pedidos.</p>
@@ -1344,7 +1346,7 @@ function settingsView() {
         <button class="outline-button shop-preview-button" data-action="open-shop">Abrir minha vitrine</button>
       </article>
 
-      <article class="operation-settings shop-operation-panel panel">
+      <article class="operation-settings shop-operation-panel panel shop-tab-content ${activeSettingsTab === 'operation' ? 'active' : 'hidden'}">
         <div class="shop-profile-heading"><div><span class="eyebrow">2. OPERACAO</span><h2>Formas de recebimento</h2><p>Escolha como sua loja atende cada pedido.</p></div></div>
         <div class="shop-options-grid">
           <label class="shop-option"><input type="checkbox" data-delivery="delivery" ${state.delivery.delivery ? 'checked' : ''}><span><strong>Delivery</strong><small>Cliente recebe no endereço</small></span></label>
@@ -1354,7 +1356,7 @@ function settingsView() {
         <button class="primary-button" data-action="save-delivery">Salvar operação</button>
       </article>
 
-      <article class="schedule-settings shop-schedule-panel panel">
+      <article class="schedule-settings shop-schedule-panel panel shop-tab-content ${activeSettingsTab === 'hours' ? 'active' : 'hidden'}">
         <div class="shop-profile-heading"><div><span class="eyebrow">3. HORARIOS</span><h2>Funcionamento semanal</h2><p>Informe quando sua loja estará disponível.</p></div></div>
         <div class="schedule-list">${scheduleRows}</div>
         <button class="primary-button" data-action="save-shop-hours">Salvar horários</button>
@@ -1374,13 +1376,15 @@ function customerShop() {
 
   const customerChatBadge = unreadMessagesCount('customer') > 0 ? `<span class="chat-badge">${unreadMessagesCount('customer')}</span>` : '';
   const featuredProducts = state.products.filter((product) => product.available).slice(0, 3);
+  const repeatProducts = state.products.filter((product) => product.available).slice(0, 2);
   app.innerHTML = `
     <div class="customer-app">
       <header class="customer-header">
         <div class="customer-brand-mark">${state.shop.photo ? `<img src="${state.shop.photo}" alt="">` : esc(state.shop.name.slice(0, 1).toUpperCase())}</div>
         <strong class="customer-store-name">${esc(state.shop.name)}</strong>
         <div class="customer-header-actions">
-          <button class="chat-shop-button" data-action="customer-chat">${customerChatBadge}💬 Falar com a loja</button>
+          <button class="customer-header-icon" data-action="customer-chat" aria-label="Falar com a loja">${customerChatBadge}◌</button>
+          <button class="customer-header-icon" data-action="open-cart" aria-label="Abrir sacola">🛒</button>
         </div>
       </header>
 
@@ -1402,11 +1406,17 @@ function customerShop() {
 
       ${state.customerView === 'menu' ? `
         ${tracked ? customerTracker(tracked) : ''}
+        <section class="delivery-banner">
+          <div class="delivery-banner-icon">⌁</div>
+          <div><strong>${state.delivery.delivery ? 'Entrega disponível' : 'Peça para retirar'}</strong><small>${state.delivery.delivery ? `Receba em aproximadamente ${Number(state.delivery.deliveryMinutes || 45)} minutos` : 'Retirada no local disponível'}</small></div>
+          <span>›</span>
+        </section>
         <nav class="customer-categories">
           ${state.categories.map((category) => `<a href="#${encodeURIComponent(category)}">${esc(category)}</a>`).join('')}
         </nav>
 
         <main class="customer-menu">
+          ${repeatProducts.length ? `<section class="customer-section repeat-section"><div class="category-heading"><h2>Peça de novo</h2><span>Favoritos da loja</span></div><div class="customer-products repeat-products">${repeatProducts.map(customerProduct).join('')}</div></section>` : ''}
           ${featuredProducts.length ? `<section class="featured-section"><div class="category-heading"><h2>Destaques</h2><span>Mais pedidos</span></div><div class="customer-products featured-products">${featuredProducts.map(customerProduct).join('')}</div></section>` : ''}
           ${state.categories.length ? state.categories.map((category) => `
             <section id="${encodeURIComponent(category)}">
@@ -1573,6 +1583,14 @@ function missingShop() {
 }
 
 function bindMerchant() {
+  document.querySelectorAll('[data-shop-settings-tab]').forEach((button) => {
+    button.onclick = () => {
+      state.shopSettingsTab = button.dataset.shopSettingsTab;
+      save();
+      render();
+    };
+  });
+
   document.querySelectorAll('[data-printer-tab]').forEach((button) => {
     button.onclick = () => {
       state.printerConfig.tab = button.dataset.printerTab;

@@ -313,8 +313,11 @@
   background: #fff;
 }
 
-.shop-settings-tabs span { flex: 1; padding: 13px 14px; color: var(--muted); font-size: 0.8rem; font-weight: 700; }
+.shop-settings-tabs button { flex: 1; border: 0; border-right: 1px solid var(--line); padding: 13px 14px; background: #fff; color: var(--muted); font-size: 0.8rem; font-weight: 700; text-align: left; }
+.shop-settings-tabs button:last-child { border-right: 0; }
 .shop-settings-tabs .active { background: var(--blue-soft); color: var(--blue); }
+
+.shop-tab-content.hidden { display: none; }
 
 .shop-settings-layout { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(280px, 0.8fr); gap: 18px; align-items: start; }
 .shop-profile-panel, .shop-link-panel, .shop-operation-panel, .shop-schedule-panel { padding: clamp(18px, 3vw, 28px); }

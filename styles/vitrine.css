@@ -36,6 +36,19 @@
   gap: 12px;
 }
 
+.customer-header-icon {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--coral);
+  font-size: 1.05rem;
+}
+
 .chat-shop-button {
   border: 1px solid var(--line);
   background: #fff;
@@ -111,9 +124,32 @@
   color: var(--coral);
 }
 
+.delivery-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 22px 18px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: linear-gradient(90deg, #f4a400, #f7c53f);
+  color: #4b2800;
+}
+
+.delivery-banner-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; background: rgba(255,255,255,.55); font-size: 1.4rem; }
+.delivery-banner div:nth-child(2) { display: grid; gap: 3px; min-width: 0; }
+.delivery-banner small { color: rgba(75,40,0,.78); }
+.delivery-banner > span { margin-left: auto; font-size: 1.5rem; }
+
 .customer-menu {
   padding: 0 22px 120px;
 }
+
+.customer-section { margin-bottom: 24px; }
+.repeat-products { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.repeat-products .customer-product { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; }
+.repeat-products .food-image { height: 92px; }
+.repeat-products .customer-product-info { padding: 10px; }
+.repeat-products .add-food { grid-column: 1 / -1; width: calc(100% - 20px); margin: 0 10px 10px; padding: 8px; }
 
 .customer-categories {
   display: flex;

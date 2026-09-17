@@ -79,13 +79,16 @@
   }
 
   .customer-header { padding: 10px 14px; }
-  .customer-header .chat-shop-button { padding: 7px; font-size: 0; }
-  .customer-header .chat-shop-button:first-letter { font-size: 1rem; }
+  .customer-header-actions { gap: 4px; }
+  .customer-header-icon { width: 32px; height: 32px; }
+  .delivery-banner { margin: 0 14px 14px; }
   .customer-menu { padding: 0 14px 92px; }
   .customer-categories { padding: 0 14px 12px; gap: 16px; }
   .featured-products { grid-template-columns: repeat(3, minmax(130px, 1fr)); overflow-x: auto; }
   .featured-products .customer-product { min-width: 130px; }
   .featured-products .food-image { height: 110px; }
+  .repeat-products { display: flex; overflow-x: auto; gap: 10px; }
+  .repeat-products .customer-product { display: grid; flex: 0 0 245px; grid-template-columns: 88px minmax(0, 1fr); }
   .customer-bottom-nav {
     position: fixed;
     right: 0;
@@ -142,7 +145,7 @@
   .printer-tabs button { padding: 10px 8px; font-size: 0.75rem; }
   .order-config-header { display: grid; grid-template-columns: 1fr 1fr; }
   .order-config-pill { min-width: 0; }
-  .shop-settings-tabs span { padding: 10px 8px; font-size: .7rem; }
+  .shop-settings-tabs button { padding: 10px 8px; font-size: .7rem; }
   .shop-form-grid, .shop-options-grid, .shop-time-grid { grid-template-columns: 1fr; }
   .shop-description-field { grid-column: auto; }
   .shop-profile-heading { flex-direction: column; }
