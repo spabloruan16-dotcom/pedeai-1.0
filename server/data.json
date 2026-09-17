@@ -1,93 +1,10 @@
 {
   "view": "dashboard",
   "customerView": "menu",
-  "ui": {
-    "openSections": {}
-  },
-  "merchant": {
-    "name": "João da Silva",
-    "email": "joao@exemplo.com",
-    "password": "123456"
-  },
-  "shop": {
-    "name": "Brasa & Massa",
-    "type": "Hamburgueria",
-    "publicId": "brasa-massa-demo",
-    "description": "Hamburgueres artesanais, porções e bebidas para quem curte sabor de verdade.",
-    "photo": "",
-    "isOpen": true,
-    "schedule": {
-      "Segunda": {
-        "enabled": true,
-        "open": "11:00",
-        "close": "22:00"
-      },
-      "Terça": {
-        "enabled": true,
-        "open": "11:00",
-        "close": "22:00"
-      },
-      "Quarta": {
-        "enabled": true,
-        "open": "11:00",
-        "close": "22:00"
-      },
-      "Quinta": {
-        "enabled": true,
-        "open": "11:00",
-        "close": "22:00"
-      },
-      "Sexta": {
-        "enabled": true,
-        "open": "11:00",
-        "close": "23:00"
-      },
-      "Sábado": {
-        "enabled": true,
-        "open": "10:00",
-        "close": "23:00"
-      },
-      "Domingo": {
-        "enabled": false,
-        "open": "12:00",
-        "close": "20:00"
-      }
-    }
-  },
-  "categories": [
-    "Lanches",
-    "Porções",
-    "Bebidas"
-  ],
-  "products": [
-    {
-      "id": 1,
-      "name": "X-Bacon",
-      "category": "Lanches",
-      "description": "Pão, burger, bacon, queijo e molho da casa.",
-      "price": 32.9,
-      "available": true,
-      "photo": ""
-    },
-    {
-      "id": 2,
-      "name": "Batata Chedar",
-      "category": "Porções",
-      "description": "Porção crocante com cheddar e cebola.",
-      "price": 24.5,
-      "available": true,
-      "photo": ""
-    },
-    {
-      "id": 3,
-      "name": "Refrigerante 600ml",
-      "category": "Bebidas",
-      "description": "Escolha seu sabor favorito.",
-      "price": 8.5,
-      "available": true,
-      "photo": ""
-    }
-  ],
+  "merchant": null,
+  "shop": null,
+  "categories": [],
+  "products": [],
   "orders": [],
   "ratings": [],
   "messages": [],
@@ -100,18 +17,6 @@
     "pickupMinutes": 20,
     "deliveryMinutes": 45,
     "autoAccept": false
-  },
-  "paymentConfig": {
-    "cash": true,
-    "pix": true,
-    "credit": true,
-    "debit": true,
-    "cardTypes": "Visa, Mastercard, Elo",
-    "cardFee": 0,
-    "maxInstallments": 3,
-    "needsChange": true,
-    "changeFor": "Até R$ 50,00",
-    "customerMessage": "Pagamento disponível em dinheiro, cartão ou pix."
   },
   "printerConfig": {
     "mode": "cabo",

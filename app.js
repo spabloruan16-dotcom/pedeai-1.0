@@ -363,10 +363,6 @@ function render() {
     return lojaParam === state.shop?.publicId ? customerShop() : missingShop();
   }
 
-  if (!state.shop && !state.merchant) {
-    ensureDemoData();
-  }
-
   if (!merchantLogged() || !state.merchant) return authView();
   if (!state.shop || !shopIsConfigured()) return merchantSetupView();
   merchantPanel();
@@ -440,6 +436,13 @@ async function loadMerchantFromSupabase() {
       isOpen: shop.esta_aberta ?? shop.is_open ?? true,
       schedule: defaultShopSchedule()
     };
+  } else {
+    state.shop = null;
+    state.categories = [];
+    state.products = [];
+    state.orders = [];
+    state.ratings = [];
+    state.messages = [];
   }
 }
 
@@ -464,8 +467,6 @@ function startLiveRefresh() {
     // Não recriar a tela de login automaticamente.
     // Só atualizar a área do comerciante se ele já estiver logado.
     if (state.merchant && state.shop && app && merchantLogged()) {
-      await syncServerState();
-
       if (merchantLogged()) {
         render();
       }
@@ -532,6 +533,7 @@ function authView() {
           <label>E-mail<input name="email" type="email" required placeholder="voce@email.com"></label>
           <label>Senha<input name="password" type="password" required placeholder="Sua senha"></label>
           <button class="primary-button auth-submit">Entrar no painel <b>-></b></button>
+          <button class="text-button" type="button" id="resend-confirmation">Reenviar confirmacao de e-mail</button>
         </form>
 
         <p class="auth-note">O cliente pode pedir sem cadastro. Se criar uma conta, seus dados ficam disponiveis em outros dispositivos quando o banco estiver conectado.</p>
@@ -544,6 +546,7 @@ function authView() {
   });
   document.querySelector('#register-form').onsubmit = registerMerchant;
   document.querySelector('#login-form').onsubmit = loginMerchant;
+  document.querySelector('#resend-confirmation').onclick = resendConfirmation;
 }
 function switchAuth(type) {
   const registerForm = document.querySelector('#register-form');
@@ -722,6 +725,10 @@ async function loginMerchant(event) {
 
     if (error) {
       console.error('ERRO DE LOGIN:', error);
+      if (error.code === 'email_not_confirmed' || /email not confirmed/i.test(error.message || '')) {
+        notify('Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada ou reenvie a confirmação.');
+        return;
+      }
       notify(error.message || 'E-mail ou senha inválidos.');
       return;
     }
@@ -754,6 +761,30 @@ async function loginMerchant(event) {
     console.error('ERRO REAL DO LOGIN:', error);
     notify(error?.message || 'Erro inesperado ao entrar.');
   }
+}
+
+async function resendConfirmation() {
+  const email = String(document.querySelector('#login-form input[name="email"]')?.value || '')
+    .trim()
+    .toLowerCase();
+
+  if (!email) {
+    notify('Digite seu e-mail para reenviar a confirmação.');
+    return;
+  }
+
+  const { error } = await supabaseClient.auth.resend({
+    type: 'signup',
+    email
+  });
+
+  if (error) {
+    console.error('ERRO AO REENVIAR CONFIRMAÇÃO:', error);
+    notify('Não foi possível reenviar agora. Confira o e-mail e tente novamente.');
+    return;
+  }
+
+  notify('E-mail de confirmação reenviado. Verifique sua caixa de entrada e spam.');
 }
 
 function nav(view, icon, text, count = '') {
