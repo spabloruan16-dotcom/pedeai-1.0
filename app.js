@@ -43,6 +43,7 @@ const blank = {
     autoAccept: false
   },
   printerConfig: {
+    tab: 'list',
     mode: 'cabo',
     deviceName: 'Impressora térmica padrão',
     copies: 1,
@@ -819,10 +820,6 @@ function unreadMessagesCount(type = 'merchant') {
   return state.messages.filter((msg) => msg.scope === 'store' && msg.from === 'merchant').length;
 }
 
-function printerIsConnected() {
-  return state.printers.some((printer) => printer.status === 'Conectada');
-}
-
 function merchantPanel() {
   const page = state.view;
   const revenue = state.orders.filter((order) => order.createdAt && order.createdAt > Date.now() - 86400000).reduce((sum, order) => sum + Number(order.total || 0), 0);
@@ -835,8 +832,8 @@ function merchantPanel() {
           <div class="shop-avatar">${state.shop.photo ? `<img src="${state.shop.photo}" alt="">` : esc(state.shop.name[0])}</div>
           <div>
             <strong>${esc(state.shop.name)}</strong>
-            <button class="${state.customerView === 'menu' ? 'active' : ''}" data-customer-view="menu"><span>⌂</span>Inicio</button>
-            <button class="${state.customerView === 'tracking' ? 'active' : ''}" data-customer-view="tracking"><span>▣</span>Pedidos</button>
+            <small>${state.shop.isOpen ? 'Aberta agora' : 'Fechada'}</small>
+          </div>
           <button class="toggle-store ${state.shop.isOpen ? 'on' : 'off'}" data-action="toggle-open"><span></span></button>
         </div>
 
@@ -874,17 +871,7 @@ function merchantPanel() {
       <main class="main-content">
         <header class="topbar">
           <div class="breadcrumb">PedeIA <span>/</span> ${page}</div>
-          <div class="topbar-actions">
-            <button class="status-orb ${state.shop.isOpen ? 'is-on' : 'is-off'}" data-action="toggle-open" title="${state.shop.isOpen ? 'Loja aberta' : 'Loja fechada'}">
-              <span class="status-orb-dot"></span>
-              <span class="status-orb-copy"><strong>Loja</strong><small>${state.shop.isOpen ? 'Aberta' : 'Fechada'}</small></span>
-            </button>
-            <button class="status-orb ${printerIsConnected() ? 'is-on' : 'is-warning'}" data-view="printers" title="Abrir impressoras">
-              <span class="status-orb-dot"></span>
-              <span class="status-orb-copy"><strong>Impressora</strong><small>${printerIsConnected() ? 'Conectada' : 'Desconectada'}</small></span>
-            </button>
-            <button class="outline-button" data-action="open-shop">Ver minha loja</button>
-          </div>
+          <button class="outline-button" data-action="open-shop">Ver minha loja</button>
         </header>
 
         ${page === 'orders' ? orderBoard() : page === 'dashboard' ? overview(revenue) : page === 'menu' ? menuView() : page === 'categories' ? categoryView() : page === 'chat' ? chatView() : page === 'printers' ? printersView() : settingsView()}
@@ -1199,36 +1186,20 @@ function chatView() {
 }
 
 function printersView() {
-  const sample = sampleOrder();
-  return `
-    <section class="page-intro">
-      <div>
-        <p class="eyebrow">IMPRESSAO E COMANDAS</p>
-        <h1>Impressoras</h1>
-        <p class="intro-copy">Conecte via Bluetooth, cabo USB, rede ou uso dos modelos que a sua loja preferir.</p>
-      </div>
-      <button class="primary-button" data-action="new-printer">Adicionar impressora</button>
-    </section>
+  const printerTab = state.printerConfig.tab || 'list';
+  const activePrinter = state.printers.find((printer) => printer.default) || state.printers[0];
 
-    <section class="settings-grid">
-      <article class="panel shop-editor">
-        <div class="editor-cover"><span>Print</span></div>
-        <div class="editor-body">
-          <p class="eyebrow">DISPOSITIVOS CADASTRADOS</p>
-          ${state.printers.length ? state.printers.map((printer) => `
-            <div class="printer-row">
-              <div>
-                <strong>${esc(printer.name)}</strong>
-                <small>${esc(printer.type)} · ${esc(printer.status || 'Disponivel')}</small>
-              </div>
-              <button class="secondary-button" data-action="connect-printer" data-printer-id="${printer.id}">${printer.status === 'Conectada' ? 'Testar' : 'Conectar'}</button>
-            </div>
-          `).join('') : '<p class="muted">Nenhuma impressora cadastrada.</p>'}
+  const modelView = `
+    <section class="printer-model-panel panel">
+      <div class="printer-section-heading">
+        <div>
+          <span class="eyebrow">MODELOS DE IMPRESSAO</span>
+          <h2>Configure sua comanda</h2>
+          <p>Escolha quais informações aparecem na impressão dos pedidos.</p>
         </div>
-      </article>
-
-      <article class="panel operation-settings">
-        <p class="eyebrow">CONFIGURACAO DA COMANDA</p>
+        <button class="secondary-button" data-printer-tab="list">Voltar para impressoras</button>
+      </div>
+      <div class="printer-settings-grid">
         <label>Tipo de conexão<select data-printer-field="mode">
           <option value="bluetooth" ${state.printerConfig.mode === 'bluetooth' ? 'selected' : ''}>Bluetooth</option>
           <option value="cabo" ${state.printerConfig.mode === 'cabo' ? 'selected' : ''}>Cabo / USB</option>
@@ -1236,20 +1207,61 @@ function printersView() {
           <option value="pdf" ${state.printerConfig.mode === 'pdf' ? 'selected' : ''}>PDF / impressão simples</option>
         </select></label>
         <label>Nome da impressora<input data-printer-field="deviceName" value="${esc(state.printerConfig.deviceName || '')}" placeholder="Ex.: Epson TM-T20"></label>
-        <label>Quantas vias saem<input type="number" min="1" max="10" data-printer-field="copies" value="${state.printerConfig.copies || 1}"></label>
-        <label class="choice-row"><input type="checkbox" data-printer-field="autoPrint" ${state.printerConfig.autoPrint ? 'checked' : ''}><span><strong>Imprimir automaticamente ao aceitar</strong><small>Sem precisar apertar o botão de impressão manual</small></span></label>
-        <label class="choice-row"><input type="checkbox" data-printer-field="includeCustomer" ${state.printerConfig.includeCustomer ? 'checked' : ''}><span><strong>Incluir nome do cliente</strong></span></label>
-        <label class="choice-row"><input type="checkbox" data-printer-field="includePhone" ${state.printerConfig.includePhone ? 'checked' : ''}><span><strong>Incluir telefone</strong></span></label>
-        <label class="choice-row"><input type="checkbox" data-printer-field="includeAddress" ${state.printerConfig.includeAddress ? 'checked' : ''}><span><strong>Incluir dados de entrega</strong></span></label>
-        <label class="choice-row"><input type="checkbox" data-printer-field="includeItems" ${state.printerConfig.includeItems ? 'checked' : ''}><span><strong>Incluir itens do pedido</strong></span></label>
-        <label class="choice-row"><input type="checkbox" data-printer-field="includeNotes" ${state.printerConfig.includeNotes ? 'checked' : ''}><span><strong>Incluir observações</strong></span></label>
-        <label class="choice-row"><input type="checkbox" data-printer-field="includePayment" ${state.printerConfig.includePayment ? 'checked' : ''}><span><strong>Incluir forma de pagamento</strong></span></label>
-        <label class="choice-row"><input type="checkbox" data-printer-field="includeFooter" ${state.printerConfig.includeFooter ? 'checked' : ''}><span><strong>Mostrar mensagem final</strong></span></label>
-        <label>Mensagem final<textarea data-printer-field="footerText" rows="2">${esc(state.printerConfig.footerText || '')}</textarea></label>
-        <button class="primary-button" data-action="save-printer-config">Salvar impressora</button>
-      </article>
+        <label>Quantidade de vias<input type="number" min="1" max="10" data-printer-field="copies" value="${state.printerConfig.copies || 1}"></label>
+      </div>
+      <div class="printer-options-grid">
+        ${[['autoPrint', 'Imprimir automaticamente ao aceitar'], ['includeCustomer', 'Incluir nome do cliente'], ['includePhone', 'Incluir telefone'], ['includeAddress', 'Incluir dados de entrega'], ['includeItems', 'Incluir itens do pedido'], ['includeNotes', 'Incluir observacoes'], ['includePayment', 'Incluir forma de pagamento'], ['includeFooter', 'Mostrar mensagem final']].map(([field, label]) => `<label class="printer-option"><input type="checkbox" data-printer-field="${field}" ${state.printerConfig[field] ? 'checked' : ''}><span>${label}</span></label>`).join('')}
+      </div>
+      <label class="printer-footer-field">Mensagem final<textarea data-printer-field="footerText" rows="2">${esc(state.printerConfig.footerText || '')}</textarea></label>
+      <button class="primary-button" data-action="save-printer-config">Salvar modelo</button>
     </section>
+  `;
 
+  const listView = `
+    <section class="printer-list-panel panel">
+      <div class="printer-section-heading">
+        <div>
+          <span class="eyebrow">1. LISTA DE IMPRESSORAS</span>
+          <h2>Impressoras conectadas</h2>
+        </div>
+        <button class="outline-button" data-action="new-printer">+ Adicionar impressora</button>
+      </div>
+      ${activePrinter ? `
+        <article class="printer-card">
+          <div class="printer-card-icon">▣</div>
+          <div class="printer-card-info">
+            <span class="printer-status">✓ ${esc(activePrinter.status || 'Conectada')}</span>
+            <strong>${esc(activePrinter.name)}</strong>
+            <small>${esc(activePrinter.type || 'Cabo')} · ${Number(state.printerConfig.copies || 1)} via(s)</small>
+            <p>Comandas vinculadas à impressão de pedidos, pagamentos e informações da loja.</p>
+          </div>
+          <div class="printer-card-actions">
+            <button class="secondary-button" data-action="print-test">▣ Testar</button>
+            <button class="icon-button" data-printer-tab="models" aria-label="Configurar impressora">⋮</button>
+          </div>
+        </article>
+      ` : '<div class="printer-empty">Nenhuma impressora cadastrada.</div>'}
+      <div class="printer-model-cta">
+        <div class="printer-model-icon">⌁</div>
+        <div><strong>Criar modelo de comanda</strong><p>Automatize as comandas por tipo de pedido e ganhe eficiência no seu negócio.</p></div>
+        <button class="primary-button" data-printer-tab="models">+ Criar modelo</button>
+      </div>
+    </section>
+  `;
+
+  return `
+    <section class="page-intro">
+      <div>
+        <p class="eyebrow">CONFIGURACOES / IMPRESSORAS</p>
+        <h1>Impressora</h1>
+        <p class="intro-copy">Gerencie os dispositivos e os modelos das suas comandas.</p>
+      </div>
+    </section>
+    <div class="printer-tabs">
+      <button class="${printerTab === 'list' ? 'active' : ''}" data-printer-tab="list">1. Lista de impressoras</button>
+      <button class="${printerTab === 'models' ? 'active' : ''}" data-printer-tab="models">2. Modelos de impressão</button>
+    </div>
+    ${printerTab === 'models' ? modelView : listView}
   `;
 }
 
@@ -1325,29 +1337,26 @@ function customerShop() {
     .find((order) => cached.name && order.customer === cached.name);
 
   const customerChatBadge = unreadMessagesCount('customer') > 0 ? `<span class="chat-badge">${unreadMessagesCount('customer')}</span>` : '';
-  const featuredProducts = state.products.filter((item) => item.available).slice(0, 3);
   app.innerHTML = `
     <div class="customer-app">
       <header class="customer-header">
-        <div class="customer-brand-block">
-          <div class="customer-store-mark">${esc(String(state.shop.name || 'L').slice(0, 1).toUpperCase())}</div>
-          <div><strong>${esc(state.shop.name)}</strong><small>${state.shop.isOpen ? 'Aberta agora' : 'Fechada'}</small></div>
-        </div>
+        ${brand()}
         <div class="customer-header-actions">
-          <button class="customer-icon-button" data-action="customer-chat" aria-label="Falar com a loja">${customerChatBadge}◌</button>
+          <button class="chat-shop-button" data-action="customer-chat">${customerChatBadge}💬 Falar com a loja</button>
         </div>
       </header>
 
       <section class="store-hero">
+        ${state.shop.photo ? `<img class="store-photo" src="${state.shop.photo}" alt="">` : '<div class="store-avatar-big"></div>'}
         <div>
-          <span class="store-kicker">${esc(state.shop.type)} · pedido mínimo R$ 0,00</span>
-          <h1>Peça seus favoritos<br><em>sem sair de casa.</em></h1>
+          <span class="open-pill">${state.shop.isOpen ? 'Aberta agora' : 'Fechada'}</span>
+          <h1>${esc(state.shop.name)}</h1>
           <p>${esc(state.shop.description)}</p>
+          <small>${esc(state.shop.type)}</small>
         </div>
-        ${state.shop.photo ? `<img class="store-photo" src="${state.shop.photo}" alt="${esc(state.shop.name)}">` : '<div class="store-hero-art"><span>🍔</span><span>🥤</span><span>🍟</span></div>'}
       </section>
 
-      <nav class="customer-tabs customer-primary-tabs">
+      <nav class="customer-tabs">
         <button class="${state.customerView === 'menu' ? 'active' : ''}" data-customer-view="menu">Cardapio</button>
         <button class="${state.customerView === 'tracking' ? 'active' : ''}" data-customer-view="tracking">Acompanhar pedido</button>
       </nav>
@@ -1357,12 +1366,10 @@ function customerShop() {
       ${state.customerView === 'menu' ? `
         ${tracked ? customerTracker(tracked) : ''}
         <nav class="customer-categories">
-          <a class="active" href="#destaques">Destaques</a>
           ${state.categories.map((category) => `<a href="#${encodeURIComponent(category)}">${esc(category)}</a>`).join('')}
         </nav>
 
         <main class="customer-menu">
-          ${featuredProducts.length ? `<section id="destaques" class="featured-section"><div class="category-heading"><div><span class="section-kicker">ESCOLHAS DA CASA</span><h2>Mais pedidos</h2></div><span>Ver todos</span></div><div class="featured-products">${featuredProducts.map(customerProduct).join('')}</div></section>` : ''}
           ${state.categories.length ? state.categories.map((category) => `
             <section id="${encodeURIComponent(category)}">
               <div class="category-heading">
@@ -1378,14 +1385,8 @@ function customerShop() {
       ` : ''}
 
       <button class="floating-cart ${state.cart.length ? '' : 'empty-floating'}" data-action="open-cart">
-        <span>🛒</span> Carrinho ${state.cart.length ? `· ${state.cart.length} item(s) · ${money(total)}` : ''}
+        Carrinho ${state.cart.length ? `· ${state.cart.length} item(s) · ${money(total)}` : ''}
       </button>
-      <nav class="customer-bottom-nav">
-        <button class="active" data-customer-view="menu"><span>⌂</span>Inicio</button>
-        <button data-customer-view="tracking"><span>▣</span>Pedidos</button>
-        <button data-action="customer-chat"><span>◌</span>Suporte</button>
-        <button data-action="open-cart"><span>🛒</span>Carrinho${state.cart.length ? `<b>${state.cart.length}</b>` : ''}</button>
-      </nav>
     </div>
   `;
 
@@ -1528,6 +1529,14 @@ function missingShop() {
 }
 
 function bindMerchant() {
+  document.querySelectorAll('[data-printer-tab]').forEach((button) => {
+    button.onclick = () => {
+      state.printerConfig.tab = button.dataset.printerTab;
+      save();
+      render();
+    };
+  });
+
   document.querySelectorAll('[data-view]').forEach((button) => {
     button.onclick = () => {
       state.view = button.dataset.view;

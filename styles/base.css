@@ -57,3 +57,49 @@ button {
 #app {
   min-height: 100vh;
 }
+
+.dialog-overlay,
+.cart-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(5, 24, 42, 0.58);
+  backdrop-filter: blur(4px);
+}
+
+.dialog-modal,
+.cart-modal {
+  width: min(560px, 100%);
+  max-height: min(760px, calc(100vh - 36px));
+  overflow: auto;
+  padding: 26px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(1, 25, 49, 0.3);
+  color: var(--ink);
+}
+
+.modal-close {
+  float: right;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 11px;
+  background: #fff;
+  color: var(--muted);
+}
+
+.dialog-head { clear: both; padding-top: 12px; margin-bottom: 20px; }
+.dialog-head h2 { margin: 8px 0; font-size: clamp(1.35rem, 4vw, 2rem); }
+.dialog-head p { margin: 0; color: var(--muted); }
+.category-icon { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; min-height: 28px; border-radius: 8px; background: var(--blue-soft); color: var(--blue-deep); font-size: 0.72rem; font-weight: 800; }
+.dialog-form, .chat-compose { display: grid; gap: 14px; }
+.dialog-form label, .chat-compose label { display: grid; gap: 7px; color: var(--ink); font-weight: 700; }
+.dialog-form input, .dialog-form textarea, .dialog-form select, .chat-compose input { width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; background: #fff; color: var(--ink); }
+.chat-messages { display: grid; gap: 9px; max-height: 300px; overflow: auto; margin-bottom: 16px; }
+.message { max-width: 85%; padding: 10px 12px; border-radius: 12px 12px 12px 3px; background: var(--blue-soft); color: var(--ink); }
+.message.mine { justify-self: end; border-radius: 12px 12px 3px 12px; background: var(--coral-soft); }
+.message small { display: block; margin-top: 5px; color: var(--muted); font-size: 0.7rem; }
