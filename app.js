@@ -4,6 +4,7 @@ const clientKey = 'pedeia-client-profile-v1';
 const stateKey = 'pedeia-state-v1';
 const sessionKey = 'pedeia-session-v1';
 let currentAuthTab = 'register';
+let accessNotice = '';
 
 let currentUser = null;
 let currentSession = null;
@@ -854,7 +855,8 @@ function authView() {
           <button class="text-button" type="button" id="resend-confirmation">Reenviar confirmacao de e-mail</button>
         </form>
 
-        <p class="auth-note">O cliente pode pedir sem cadastro. Se criar uma conta, seus dados ficam disponiveis em outros dispositivos quando o banco estiver conectado.</p>
+        ${accessNotice ? `<div class="access-notice" role="status">${esc(accessNotice)}</div>` : ''}
+        <p class="auth-note">O cliente pode pedir sem cadastro. O acesso do comerciante passa por uma análise antes da liberação do painel.</p>
       </section>
     </main>
   `;
@@ -902,7 +904,7 @@ async function registerMerchant(event) {
   }
 
   try {
-    notify('Criando sua conta...');
+    notify('Enviando sua solicitação...');
 
     const { data: authData, error: authError } =
       await supabaseClient.auth.signUp({
@@ -923,92 +925,31 @@ async function registerMerchant(event) {
       return;
     }
 
-    const { error: merchantError } = await supabaseClient
-      .from('comerciantes')
+    const { error: requestError } = await supabaseClient
+      .from('solicitacoes_acesso')
       .insert({
-        id: user.id,
+        auth_user_id: user.id,
         nome: name,
-        email: email
+        email,
+        nome_comercio: shopName,
+        tipo_comercio: shopType,
+        status: 'pending'
       });
 
-    if (merchantError) {
-      console.error(merchantError);
-
+    if (requestError) {
+      console.error(requestError);
       await supabaseClient.auth.signOut();
-
-      notify('Erro ao salvar os dados do comerciante.');
+      notify('Não foi possível registrar sua solicitação.');
       return;
     }
 
-    const publicId =
-      `${slug(shopName)}-${Math.random().toString(36).slice(2, 7)}`;
-
-    const { data: shopData, error: shopError } =
-      await supabaseClient
-        .from('lojas')
-        .insert({
-          merchant_id: user.id,
-          public_id: publicId,
-          nome: shopName,
-          tipo: shopType,
-          descricao: '',
-          foto_url: null,
-          capa_url: null,
-          esta_aberta: true,
-          aceita_entrega: true,
-          aceita_retirada: true,
-          tempo_entrega: 45,
-          tempo_retirada: 20
-        })
-        .select()
-        .single();
-
-    if (shopError) {
-      console.error(shopError);
-
-      await supabaseClient
-        .from('comerciantes')
-        .delete()
-        .eq('id', user.id);
-
-      await supabaseClient.auth.signOut();
-
-      notify('Erro ao criar a loja.');
-      return;
-    }
-
-    currentUser = user;
-    currentSession = authData.session;
-
-    state.merchant = {
-      id: user.id,
-      name: name,
-      email: email
-    };
-
-    state.shop = {
-      id: shopData.id,
-      merchantId: shopData.merchant_id,
-      publicId: shopData.public_id,
-      name: shopData.nome || shopData.name || '',
-      type: shopData.tipo || shopData.type || '',
-      description: shopData.descricao ?? shopData.description ?? '',
-      photo: shopData.foto_url || shopData.photo_url || '',
-      cover: shopData.capa_url || '',
-      isOpen: shopData.esta_aberta ?? shopData.is_open ?? true,
-      schedule: defaultShopSchedule()
-    };
-
-    state.categories = [];
-    state.products = [];
-    state.orders = [];
-    state.ratings = [];
-    state.messages = [];
-    state.cart = [];
-
+    await supabaseClient.auth.signOut();
+    currentUser = null;
+    currentSession = null;
+    accessNotice = 'Sua conta foi enviada para análise de aprovação. Em breve você receberá um e-mail com os próximos passos e os dados de acesso.';
+    currentAuthTab = 'login';
     render();
-
-    notify('Conta criada com sucesso!');
+    notify('Solicitação enviada para análise.');
   } catch (error) {
     console.error(error);
     notify('Erro inesperado ao criar a conta.');
@@ -1062,6 +1003,32 @@ async function loginMerchant(event) {
     currentUser = authData.user;
     currentSession = authData.session;
 
+    const { data: accessRequest, error: accessError } = await supabaseClient
+      .from('solicitacoes_acesso')
+      .select('status, motivo_rejeicao')
+      .eq('auth_user_id', currentUser.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (accessError) console.error('Erro ao consultar solicitação de acesso:', accessError);
+    if (accessRequest?.status === 'pending') {
+      await supabaseClient.auth.signOut();
+      currentUser = null;
+      currentSession = null;
+      accessNotice = 'Sua conta ainda está em análise. Você receberá um e-mail assim que o acesso for aprovado.';
+      render();
+      return;
+    }
+    if (accessRequest?.status === 'rejected') {
+      await supabaseClient.auth.signOut();
+      currentUser = null;
+      currentSession = null;
+      accessNotice = `Sua solicitação não foi aprovada neste momento${accessRequest.motivo_rejeicao ? `: ${accessRequest.motivo_rejeicao}` : '.'}`;
+      render();
+      return;
+    }
+
     await loadMerchantFromSupabase();
 
     if (!state.merchant || !state.shop) {
@@ -1073,6 +1040,7 @@ async function loginMerchant(event) {
     }
 
     sessionStorage.setItem(sessionKey, 'active');
+    accessNotice = '';
     save();
 
     notify('Login realizado com sucesso!');

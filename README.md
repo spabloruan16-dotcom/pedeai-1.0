@@ -47,3 +47,11 @@ Depois do deploy, teste `https://SEU-APP.onrender.com/api/health`. A resposta es
 ```
 
 O arquivo `render.yaml` já guarda essa configuração para o deploy automático pelo Render Blueprint.
+
+## Aprovação de novos comerciantes
+
+Execute `schema.sql` e `supabase-rls.sql` no Supabase. O formulário **Criar conta** cria o usuário no Auth e registra os dados em `solicitacoes_acesso` com status `pending`; ele não cria a loja nem libera o painel automaticamente.
+
+Para aprovar uma solicitação, o responsável deve conferir a linha no Supabase, criar o registro correspondente em `comerciantes` e atualizar o status para `approved`. Depois, o comerciante poderá entrar e concluir os dados da loja no painel.
+
+O Supabase Auth pode enviar automaticamente o e-mail de confirmação configurado no projeto. Para enviar um e-mail próprio quando o status mudar para `approved`, use uma Edge Function ou serviço SMTP disparado por webhook do Supabase; a chave administrativa não deve ser colocada no frontend.

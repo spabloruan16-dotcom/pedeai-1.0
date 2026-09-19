@@ -127,6 +127,18 @@
   line-height: 1.5;
 }
 
+.access-notice {
+  margin-top: 18px; /* Afasta o aviso dos formulários. */
+  padding: 13px 14px; /* Cria espaço para a mensagem de análise. */
+  border: 1px solid rgba(8, 127, 196, 0.22); /* Define o contorno informativo. */
+  border-radius: 12px; /* Arredonda o aviso. */
+  background: var(--blue-soft); /* Destaca a confirmação sem usar alerta de erro. */
+  color: var(--blue-deep); /* Mantém o texto legível. */
+  font-size: 0.82rem; /* Mantém o aviso compacto. */
+  font-weight: 700; /* Dá clareza à orientação. */
+  line-height: 1.45; /* Melhora a leitura em mensagens maiores. */
+}
+
 .primary-button,
 .secondary-button,
 .outline-button,

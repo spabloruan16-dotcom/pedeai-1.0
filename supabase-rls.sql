@@ -14,6 +14,19 @@ ALTER TABLE public.pedidos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.itens_do_pedido ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.mensagens ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.avaliacoes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.solicitacoes_acesso ENABLE ROW LEVEL SECURITY;
+
+-- Solicitações: qualquer visitante pode enviar um pedido sem acesso ao painel;
+-- o solicitante só consegue consultar a própria solicitação.
+DROP POLICY IF EXISTS "solicitacoes_insert_public" ON public.solicitacoes_acesso;
+CREATE POLICY "solicitacoes_insert_public"
+ON public.solicitacoes_acesso FOR INSERT TO anon, authenticated
+WITH CHECK (status = 'pending');
+
+DROP POLICY IF EXISTS "solicitacoes_select_own" ON public.solicitacoes_acesso;
+CREATE POLICY "solicitacoes_select_own"
+ON public.solicitacoes_acesso FOR SELECT TO authenticated
+USING (auth_user_id = auth.uid());
 
 -- =============================================================
 -- POLÍTICAS: comerciantes

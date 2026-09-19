@@ -9,6 +9,27 @@ END;
 $$;
 
 -- =============================================================
+-- TABELA: solicitacoes_acesso
+-- Guarda pedidos de cadastro até que o responsável aprove o acesso.
+-- =============================================================
+CREATE TABLE IF NOT EXISTS public.solicitacoes_acesso (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auth_user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    nome VARCHAR(120) NOT NULL,
+    email VARCHAR(190) NOT NULL,
+    nome_comercio VARCHAR(140) NOT NULL,
+    tipo_comercio VARCHAR(80) NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
+    motivo_rejeicao TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT solicitacoes_acesso_status_check CHECK (status IN ('pending', 'approved', 'rejected'))
+);
+
+CREATE INDEX IF NOT EXISTS idx_solicitacoes_acesso_user ON public.solicitacoes_acesso(auth_user_id);
+CREATE INDEX IF NOT EXISTS idx_solicitacoes_acesso_status ON public.solicitacoes_acesso(status);
+
+-- =============================================================
 -- TABELA: comerciantes
 -- Guarda os dados do dono da loja e da conta autenticada no Supabase.
 -- Cada usuário autenticado vira um comerciante vinculado à sua loja.
