@@ -1,24 +1,24 @@
 /* Estilos do painel administrativo e controles extras */
 .board-tools {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 18px;
+  display: flex; /* Alinha as ferramentas do quadro em uma linha. */
+  gap: 12px; /* Separa os controles. */
+  align-items: center; /* Centraliza os controles verticalmente. */
+  justify-content: space-between; /* Distribui os controles pelas extremidades. */
+  margin-bottom: 18px; /* Afasta as ferramentas do conteúdo seguinte. */
 }
 
 .board-alert {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: -4px 0 16px;
-  padding: 10px 14px;
-  border: 1px solid #8bd3ed;
-  border-radius: 6px;
-  background: #c9f1fb;
-  color: #075276;
-  font-size: 0.8rem;
-  font-weight: 700;
+  display: flex; /* Organiza ícone e mensagem lado a lado. */
+  align-items: center; /* Centraliza ícone e texto. */
+  gap: 10px; /* Separa ícone e mensagem. */
+  margin: -4px 0 16px; /* Ajusta a posição e cria espaço inferior. */
+  padding: 10px 14px; /* Cria espaço interno no alerta. */
+  border: 1px solid #8bd3ed; /* Define a borda do alerta. */
+  border-radius: 12px; /* Arredonda o alerta. */
+  background: #c9f1fb; /* Colore o fundo informativo. */
+  color: #075276; /* Define a cor da mensagem. */
+  font-size: 0.8rem; /* Mantém o texto compacto. */
+  font-weight: 700; /* Destaca a mensagem. */
 }
 
 .board-alert-icon {
@@ -33,16 +33,23 @@
 }
 
 .search-field {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 0 12px;
-  width: min(430px, 100%);
-  color: var(--muted);
-  font-size: 0.7rem;
+  display: flex; /* Alinha ícone e campo de busca. */
+  align-items: center; /* Centraliza o conteúdo verticalmente. */
+  gap: 10px; /* Separa ícone e entrada. */
+  background: #fff; /* Define o fundo do campo. */
+  border: 1px solid var(--line); /* Cria a borda do campo. */
+  border-radius: 10px; /* Arredonda o campo. */
+  padding: 0 12px; /* Cria espaço horizontal interno. */
+  width: min(430px, 100%); /* Limita a largura sem estourar a tela. */
+  color: var(--muted); /* Define a cor do texto auxiliar. */
+  font-size: 0.7rem; /* Ajusta o tamanho do texto auxiliar. */
+  box-shadow: var(--shadow-soft); /* Destaca o campo sobre o fundo. */
+  transition: border-color 180ms var(--ease-soft), box-shadow 180ms var(--ease-soft); /* Suaviza o foco do campo. */
+}
+
+.search-field:focus-within {
+  border-color: var(--blue); /* Destaca o campo ativo. */
+  box-shadow: 0 0 0 4px rgba(8, 127, 196, 0.1); /* Mostra claramente o foco. */
 }
 
 .search-field input {
@@ -55,11 +62,11 @@
 }
 
 .filter-pills {
-  display: flex;
-  gap: 6px;
-  background: #f2efed;
-  border-radius: 12px;
-  padding: 4px;
+  display: flex; /* Coloca os filtros lado a lado. */
+  gap: 6px; /* Separa as opções. */
+  background: #f2efed; /* Destaca o grupo de filtros. */
+  border-radius: 12px; /* Arredonda o grupo. */
+  padding: 4px; /* Cria uma moldura interna. */
 }
 
 .filter-pills button {
@@ -74,7 +81,8 @@
 .filter-pills button.selected {
   background: #fff;
   color: var(--coral);
-  box-shadow: 0 2px 8px rgba(25, 29, 36, 0.05);
+  box-shadow: 0 4px 10px rgba(25, 29, 36, 0.08);
+  transform: translateY(-1px);
 }
 
 .filter-pills button:hover:not(.selected) { color: var(--ink); background: rgba(255, 255, 255, 0.7); }
@@ -86,7 +94,10 @@
   gap: 18px;
   margin-bottom: 18px;
   border: 0;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: var(--shadow-soft);
 }
 
 .order-config-header,
@@ -125,6 +136,7 @@
   background: #d7dfe2;
   position: relative;
   cursor: pointer;
+  transition: background 180ms var(--ease-soft), box-shadow 180ms var(--ease-soft);
 }
 
 .toggle-pill input::after {
@@ -139,7 +151,7 @@
   transition: transform 0.2s ease;
 }
 
-.toggle-pill input:checked { background: #20a5d2; }
+.toggle-pill input:checked { background: #20a5d2; box-shadow: 0 0 0 4px rgba(32, 165, 210, 0.12); }
 .toggle-pill input:checked::after { transform: translateX(16px); }
 
 .order-board {
@@ -153,7 +165,8 @@
   min-width: 0;
   min-height: 420px;
   padding: 12px;
-  border-radius: 8px;
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
   background: #eaf0ef;
 }
 
@@ -185,12 +198,12 @@
 
 .order-card {
   padding: 13px;
-  border-radius: 8px;
+  border-radius: 13px;
   background: #fff;
-  box-shadow: 0 5px 12px rgba(25, 29, 36, 0.12);
+  box-shadow: 0 6px 14px rgba(25, 29, 36, 0.11);
 }
 
-.order-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(25, 29, 36, 0.16); }
+.order-card:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 14px 26px rgba(25, 29, 36, 0.16); }
 
 .order-card-top,
 .customer-line,

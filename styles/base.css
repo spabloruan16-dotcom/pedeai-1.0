@@ -1,62 +1,99 @@
 /* Base global do projeto */
 :root {
-  --coral: #f4512c;
-  --coral-strong: #d93d17;
-  --coral-soft: #fff4ef;
-  --blue: #087fc4;
-  --blue-deep: #07345c;
-  --blue-soft: #e8f7ff;
-  --cyan: #bcefe9;
-  --board-red: #f16b78;
-  --board-amber: #f0a23a;
-  --board-green: #32a77b;
-  --ink: #1f2430;
-  --muted: #67707d;
-  --bg: #f5f3f0;
-  --panel: #ffffff;
-  --line: #ece7e2;
-  --shadow: rgba(25, 29, 36, 0.08);
-  --success: #32a66d;
-  --warning: #f4b740;
-  --danger: #d95d5d;
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --coral: #f4512c; /* Cor principal da interface. */
+  --coral-strong: #d93d17; /* Variação escura do coral. */
+  --coral-soft: #fff4ef; /* Fundo claro relacionado ao coral. */
+  --blue: #087fc4; /* Azul principal dos controles. */
+  --blue-deep: #07345c; /* Azul escuro para textos e contrastes. */
+  --blue-soft: #e8f7ff; /* Fundo claro relacionado ao azul. */
+  --cyan: #bcefe9; /* Ciano de apoio da paleta. */
+  --board-red: #f16b78; /* Cor da coluna de pedidos recebidos. */
+  --board-amber: #f0a23a; /* Cor da coluna de pedidos em produção. */
+  --board-green: #32a77b; /* Cor da coluna de pedidos em entrega. */
+  --ink: #1f2430; /* Cor padrão dos textos. */
+  --muted: #67707d; /* Cor de textos secundários. */
+  --bg: #f5f3f0; /* Fundo geral das páginas. */
+  --panel: #ffffff; /* Fundo de painéis e cartões. */
+  --line: #ece7e2; /* Cor padrão das bordas. */
+  --shadow: rgba(25, 29, 36, 0.08); /* Sombra padrão dos componentes. */
+  --success: #32a66d; /* Cor de estados bem-sucedidos. */
+  --warning: #f4b740; /* Cor de alertas. */
+  --danger: #d95d5d; /* Cor de erros e estados negativos. */
+  --radius-sm: 10px; /* Arredondamento pequeno. */
+  --radius-md: 14px; /* Arredondamento médio. */
+  --radius-lg: 20px; /* Arredondamento grande. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1); /* Curva de animação de saída. */
+  --ease-soft: cubic-bezier(0.2, 0.8, 0.2, 1); /* Curva de transição suave. */
+  --font-display: 'Space Grotesk', sans-serif; /* Fonte de destaque para títulos. */
+  --font-body: 'DM Sans', sans-serif; /* Fonte confortável para textos e controles. */
+  --shadow-soft: 0 10px 30px rgba(23, 37, 52, 0.07); /* Sombra leve para superfícies. */
+  --shadow-lift: 0 18px 42px rgba(23, 37, 52, 0.13); /* Sombra dos elementos elevados. */
 }
 
 * {
-  box-sizing: border-box;
+  box-sizing: border-box; /* Inclui borda e preenchimento no tamanho total. */
 }
 
 html, body {
-  margin: 0;
-  min-height: 100%;
-  font-family: 'DM Sans', sans-serif;
-  background: var(--bg);
-  color: var(--ink);
+  margin: 0; /* Remove a margem padrão do navegador. */
+  min-height: 100%; /* Garante altura mínima para a página. */
+  font-family: var(--font-body); /* Define a fonte principal. */
+  background: var(--bg); /* Aplica o fundo global. */
+  color: var(--ink); /* Aplica a cor global do texto. */
 }
 
 body {
-  overflow-x: hidden;
+  overflow-x: hidden; /* Evita rolagem horizontal acidental. */
 }
 
 body {
-  min-height: 100vh;
+  min-height: 100vh; /* Ocupa pelo menos toda a altura da janela. */
+  -webkit-font-smoothing: antialiased; /* Deixa a renderização mais limpa em telas mac. */
+  text-rendering: optimizeLegibility; /* Melhora a leitura de textos maiores. */
+}
+
+h1, h2, h3, h4, strong, button {
+  font-family: var(--font-display); /* Dá mais personalidade a títulos e ações. */
+}
+
+::selection {
+  background: var(--coral); /* Destaca o texto selecionado com a cor da marca. */
+  color: #fff; /* Mantém o texto selecionado legível. */
+}
+
+::-webkit-scrollbar {
+  width: 10px; /* Define a largura da barra vertical. */
+  height: 10px; /* Define a altura da barra horizontal. */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; /* Mantém o trilho discreto. */
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent; /* Cria respiro ao redor do indicador. */
+  border-radius: 999px; /* Arredonda o indicador da rolagem. */
+  background: #cbd5d9; /* Colore o indicador da rolagem. */
+  background-clip: padding-box; /* Mantém a borda transparente visível. */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9eafb7; /* Escurece o indicador ao passar o mouse. */
+  background-clip: padding-box; /* Preserva o respiro do indicador. */
 }
 
 button, input, textarea, select {
-  font: inherit;
+  font: inherit; /* Faz controles usarem a fonte do elemento pai. */
 }
 
 img {
-  max-width: 100%;
-  display: block;
+  max-width: 100%; /* Impede imagens de ultrapassarem o contêiner. */
+  display: block; /* Remove o espaço de linha de imagens inline. */
 }
 
 button {
-  cursor: pointer;
+  cursor: pointer; /* Indica que o botão pode ser acionado. */
+  -webkit-tap-highlight-color: transparent; /* Remove o flash azul no toque. */
 }
 
 button,
@@ -85,17 +122,26 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
+a {
+  color: inherit; /* Faz links respeitarem a cor do contexto. */
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #9aa6ad; /* Suaviza textos de orientação dos campos. */
+}
+
 button:active:not(:disabled) {
   transform: translateY(1px) scale(0.985);
 }
 
 button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
+  cursor: not-allowed; /* Indica que o controle está indisponível. */
+  opacity: 0.55; /* Diminui visualmente o controle desativado. */
 }
 
 #app {
-  min-height: 100vh;
+  min-height: 100vh; /* Faz o aplicativo preencher a janela. */
 }
 
 #app > * {
@@ -137,7 +183,7 @@ button:disabled {
   overflow: auto;
   padding: 26px;
   border: 1px solid rgba(255, 255, 255, 0.8);
-  border-radius: 18px;
+  border-radius: 22px;
   background: #fff;
   box-shadow: 0 24px 70px rgba(1, 25, 49, 0.3);
   color: var(--ink);
@@ -147,10 +193,30 @@ button:disabled {
 .modal-close {
   float: right;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 7px 11px;
   background: #fff;
   color: var(--muted);
+}
+
+.modal-close:hover {
+  transform: translateY(-1px); /* Eleva o botão ao passar o mouse. */
+}
+
+.toast {
+  position: fixed; /* Mantém a mensagem presa à janela. */
+  right: 20px; /* Afasta a mensagem da borda direita. */
+  bottom: 20px; /* Afasta a mensagem da borda inferior. */
+  z-index: 200; /* Mantém a mensagem acima dos demais elementos. */
+  max-width: min(360px, calc(100vw - 40px)); /* Evita que a mensagem estoure a tela. */
+  padding: 13px 16px; /* Cria espaço interno confortável. */
+  border: 1px solid rgba(255, 255, 255, 0.55); /* Define uma borda delicada. */
+  border-radius: 14px; /* Arredonda a mensagem. */
+  background: #172b3c; /* Cria contraste com o conteúdo. */
+  color: #fff; /* Mantém a mensagem legível. */
+  box-shadow: var(--shadow-lift); /* Destaca a mensagem da página. */
+  font-size: 0.85rem; /* Mantém a mensagem compacta. */
+  font-weight: 600; /* Dá presença ao texto da mensagem. */
 }
 
 .modal-close:hover { border-color: var(--coral); color: var(--coral); background: var(--coral-soft); }

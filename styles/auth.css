@@ -1,32 +1,49 @@
 /* Estilos da autenticação do comerciante */
 .auth-screen {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 1.1fr 0.9fr;
-  background: linear-gradient(135deg, #fff9f6 0%, #f5f1ee 100%);
+  min-height: 100vh; /* Faz a tela de autenticação ocupar a janela. */
+  display: grid; /* Organiza arte e formulário em uma grade. */
+  grid-template-columns: 1.1fr 0.9fr; /* Dá mais espaço à área visual. */
+  background: radial-gradient(circle at 12% 15%, rgba(244, 81, 44, 0.13), transparent 28%), linear-gradient(135deg, #fff9f6 0%, #f5f1ee 100%); /* Cria profundidade no fundo. */
 }
 
 .auth-art {
-  padding: 48px 56px;
-  background: linear-gradient(135deg, #fff 0%, #f6eee8 100%);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  padding: 48px 56px; /* Cria espaço interno na área visual. */
+  background: linear-gradient(135deg, #fff 0%, #f6eee8 100%); /* Diferencia o painel artístico. */
+  display: flex; /* Ativa o layout flexível. */
+  flex-direction: column; /* Empilha o conteúdo verticalmente. */
+  justify-content: space-between; /* Distribui o conteúdo pela altura. */
+  position: relative; /* Permite criar detalhes decorativos no painel. */
+  overflow: hidden; /* Mantém os detalhes dentro do painel. */
+}
+
+.auth-art::after {
+  content: ''; /* Cria a forma decorativa sem alterar o HTML. */
+  position: absolute; /* Posiciona a forma sobre o fundo. */
+  right: -110px; /* Desloca a forma para fora do painel. */
+  bottom: -150px; /* Desloca a forma para fora do painel. */
+  width: 360px; /* Define a largura da forma. */
+  height: 360px; /* Define a altura da forma. */
+  border: 1px solid rgba(244, 81, 44, 0.18); /* Desenha um contorno sutil. */
+  border-radius: 50%; /* Transforma a forma em círculo. */
+  box-shadow: 0 0 0 42px rgba(244, 81, 44, 0.035), 0 0 0 84px rgba(244, 81, 44, 0.025); /* Cria anéis suaves. */
+  pointer-events: none; /* Não bloqueia cliques no conteúdo. */
 }
 
 .auth-card {
-  background: rgba(255, 255, 255, 0.7);
-  border-left: 1px solid var(--line);
-  padding: 56px 42px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  background: rgba(255, 255, 255, 0.7); /* Dá translucidez ao cartão do formulário. */
+  border-left: 1px solid var(--line); /* Separa o formulário da arte. */
+  padding: 56px 42px; /* Define o espaçamento interno. */
+  display: flex; /* Organiza o conteúdo com flexbox. */
+  flex-direction: column; /* Empilha título, abas e formulário. */
+  justify-content: center; /* Centraliza o conteúdo verticalmente. */
+  box-shadow: -18px 0 50px rgba(35, 35, 35, 0.04); /* Separa visualmente o formulário. */
 }
 
 .auth-card h2 {
   margin: 0;
   font-size: clamp(2rem, 2.6vw, 3rem);
-  letter-spacing: -0.05em;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
 }
 
 .auth-card p {
@@ -55,7 +72,8 @@
 .auth-tabs button.selected {
   background: var(--panel);
   color: var(--ink);
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.1);
+  transform: translateY(-1px);
 }
 
 .auth-tabs button:hover:not(.selected) { color: var(--ink); background: rgba(255, 255, 255, 0.55); }
@@ -114,10 +132,16 @@
 .outline-button,
 .text-button {
   border: none;
-  border-radius: 12px;
+  border-radius: 11px;
   padding: 12px 18px;
   font-weight: 700;
-  transition: 0.2s ease;
+  transition: transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out), background 180ms var(--ease-soft), border-color 180ms var(--ease-soft), color 180ms var(--ease-soft);
+}
+
+.primary-button,
+.secondary-button,
+.outline-button {
+  min-height: 44px;
 }
 
 .primary-button {

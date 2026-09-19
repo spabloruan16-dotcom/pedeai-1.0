@@ -1,39 +1,42 @@
 /* Ajustes responsivos */
 @media (max-width: 980px) {
   .auth-screen {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr; /* Empilha as áreas de autenticação. */
   }
 
   .auth-art {
-    padding: 30px 20px;
+    padding: 30px 20px; /* Reduz o espaçamento da arte em telas menores. */
   }
 
   .auth-card {
-    padding: 28px 20px 40px;
+    padding: 28px 20px 40px; /* Ajusta o formulário para telas menores. */
   }
 
   .shell {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr; /* Remove a coluna fixa da barra lateral. */
   }
 
   .sidebar {
-    width: 100%;
-    min-width: 0;
-    border-right: none;
-    border-bottom: 1px solid var(--line);
-    padding: 12px;
-    gap: 10px;
+    width: 100%; /* Faz a barra ocupar toda a largura. */
+    min-width: 0; /* Permite que a barra encolha. */
+    border-right: none; /* Remove a borda lateral. */
+    border-bottom: 1px solid var(--line); /* Cria separação abaixo da barra. */
+    padding: 12px; /* Reduz o espaçamento interno. */
+    gap: 10px; /* Reduz o espaço entre os grupos. */
   }
 
   .persistent-link,
-  .sidebar-bottom { display: none; }
+  .sidebar-bottom { display: none; /* Oculta blocos secundários no celular. */ }
 
   .side-nav {
     display: flex;
     overflow-x: auto;
     gap: 6px;
     padding-bottom: 2px;
+    scrollbar-width: none;
   }
+
+  .side-nav::-webkit-scrollbar { display: none; }
 
   .side-nav button {
     width: auto;
@@ -49,9 +52,11 @@
     flex-direction: column;
   }
 
-  .order-board { grid-template-columns: 1fr; }
-  .board-column { min-height: 180px; }
-  .empty-panel { min-height: 120px; }
+  .order-config-panel { padding: 14px; }
+
+  .order-board { grid-template-columns: 1fr; /* Empilha as colunas de pedidos. */ }
+  .board-column { min-height: 180px; /* Reduz a altura mínima das colunas. */ }
+  .empty-panel { min-height: 120px; /* Reduz o espaço de estados vazios. */ }
 
   .stats-grid,
   .settings-grid,
@@ -72,22 +77,29 @@
     flex-wrap: wrap;
   }
 
+  .topbar-actions > * { flex: 1 1 auto; }
+
   .store-hero {
     grid-template-columns: 1fr;
     min-height: 190px;
     padding: 22px 16px;
   }
 
+  .store-hero h1 { font-size: clamp(1.8rem, 10vw, 2.6rem); }
+
   .customer-header { padding: 10px 14px; }
   .customer-header-actions { gap: 4px; }
   .customer-header-icon { width: 32px; height: 32px; }
   .delivery-banner { margin: 0 14px 14px; }
   .customer-menu { padding: 0 14px 92px; }
-  .customer-categories { padding: 0 14px 12px; gap: 16px; }
-  .featured-products { grid-template-columns: repeat(3, minmax(130px, 1fr)); overflow-x: auto; }
+  .customer-categories { padding: 0 14px 12px; gap: 16px; scrollbar-width: none; }
+  .customer-categories::-webkit-scrollbar { display: none; }
+  .featured-products { grid-template-columns: repeat(3, minmax(130px, 1fr)); overflow-x: auto; scrollbar-width: none; }
+  .featured-products::-webkit-scrollbar { display: none; }
   .featured-products .customer-product { min-width: 130px; }
   .featured-products .food-image { height: 110px; }
-  .repeat-products { display: flex; overflow-x: auto; gap: 10px; }
+  .repeat-products { display: flex; overflow-x: auto; gap: 10px; scrollbar-width: none; }
+  .repeat-products::-webkit-scrollbar { display: none; }
   .repeat-products .customer-product { display: grid; flex: 0 0 245px; grid-template-columns: 88px minmax(0, 1fr); }
   .customer-bottom-nav {
     position: fixed;

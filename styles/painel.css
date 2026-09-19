@@ -1,34 +1,35 @@
 /* Estilos do painel principal do comerciante */
 .shell {
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  min-height: 100vh;
-  background: var(--bg);
+  display: grid; /* Divide a tela entre barra lateral e conteúdo. */
+  grid-template-columns: 280px 1fr; /* Define a largura da barra lateral. */
+  min-height: 100vh; /* Mantém o painel com altura total. */
+  background: var(--bg); /* Usa o fundo global do projeto. */
 }
 
 .sidebar {
-  background: linear-gradient(180deg, #062e54 0%, #075a8e 100%);
-  border-right: 1px solid var(--line);
-  padding: 20px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+  background: linear-gradient(180deg, #062e54 0%, #075a8e 100%); /* Cria o fundo da navegação. */
+  box-shadow: 10px 0 28px rgba(4, 38, 70, 0.1); /* Dá profundidade à barra lateral. */
+  border-right: 1px solid var(--line); /* Separa a navegação do conteúdo. */
+  padding: 20px 18px; /* Define o espaço interno da barra. */
+  display: flex; /* Organiza os itens em flexbox. */
+  flex-direction: column; /* Empilha os itens verticalmente. */
+  gap: 18px; /* Espaça os grupos da barra lateral. */
 }
 
 .shop-mini,
 .profile-chip,
 .persistent-link,
 .sidebar-bottom {
-  background: rgba(3, 26, 55, 0.28);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  padding: 12px 14px;
+  background: rgba(3, 26, 55, 0.28); /* Destaca os blocos da barra lateral. */
+  border: 1px solid rgba(255, 255, 255, 0.12); /* Define a borda translúcida. */
+  border-radius: 16px; /* Arredonda os blocos. */
+  padding: 12px 14px; /* Cria espaço ao redor do conteúdo. */
 }
 
 .shop-mini {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+  display: flex; /* Alinha avatar e informações lado a lado. */
+  align-items: center; /* Centraliza os itens verticalmente. */
+  gap: 12px; /* Separa avatar e texto. */
 }
 
 .shop-mini > div:nth-child(2),
@@ -64,32 +65,32 @@
 }
 
 .toggle-store {
-  margin-left: auto;
-  border: none;
-  width: 46px;
-  height: 28px;
-  border-radius: 999px;
-  position: relative;
-  background: #d8d9dd;
+  margin-left: auto; /* Empurra o interruptor para a direita. */
+  border: none; /* Remove a borda padrão do botão. */
+  width: 46px; /* Define a largura do interruptor. */
+  height: 28px; /* Define a altura do interruptor. */
+  border-radius: 999px; /* Cria o formato de cápsula. */
+  position: relative; /* Serve de referência para o indicador. */
+  background: #d8d9dd; /* Mostra o estado desligado. */
 }
 
 .toggle-store span {
-  position: absolute;
-  top: 4px;
-  left: 4px;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: #fff;
-  transition: 0.2s ease;
+  position: absolute; /* Posiciona o indicador dentro do interruptor. */
+  top: 4px; /* Afasta o indicador do topo. */
+  left: 4px; /* Afasta o indicador da esquerda. */
+  width: 20px; /* Define a largura do indicador. */
+  height: 20px; /* Define a altura do indicador. */
+  border-radius: 50%; /* Torna o indicador circular. */
+  background: #fff; /* Colore o indicador. */
+  transition: 0.2s ease; /* Anima a mudança de posição. */
 }
 
 .toggle-store.on {
-  background: var(--success);
+  background: var(--success); /* Mostra visualmente o estado ligado. */
 }
 
 .toggle-store.on span {
-  transform: translateX(18px);
+  transform: translateX(18px); /* Move o indicador para o lado direito. */
 }
 
 .persistent-link {
@@ -130,17 +131,19 @@
   padding: 11px 12px;
   border: 1px solid transparent;
   background: transparent;
-  border-radius: 12px;
+  border-radius: 11px;
   text-align: left;
   color: #b8dff0;
   font-weight: 700;
+  position: relative;
 }
 
 .side-nav button.active {
   background: #0984ca;
   border-color: rgba(255, 255, 255, 0.12);
   color: #fff;
-  box-shadow: 0 8px 18px rgba(0, 26, 57, 0.18);
+  box-shadow: 0 10px 22px rgba(0, 26, 57, 0.22);
+  transform: translateX(2px);
 }
 
 .side-nav button:hover:not(.active) { background: rgba(255, 255, 255, 0.08); color: #fff; transform: translateX(3px); }
@@ -175,7 +178,7 @@
 .main-content {
   padding: 24px clamp(18px, 3vw, 42px) 40px;
   min-width: 0;
-  background: #f6f8f8;
+  background: radial-gradient(circle at 100% 0%, rgba(8, 127, 196, 0.06), transparent 28%), #f6f8f8;
 }
 
 .topbar {
@@ -261,7 +264,8 @@
 .page-intro h1 {
   margin: 8px 0;
   font-size: clamp(2rem, 2.5vw, 3rem);
-  letter-spacing: -0.06em;
+  letter-spacing: -0.04em;
+  line-height: 1.05;
 }
 
 .intro-copy {
@@ -295,14 +299,28 @@
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 18px;
-  box-shadow: 0 12px 24px var(--shadow);
+  box-shadow: var(--shadow-soft);
 }
 
 .panel:hover,
-.stat-card:hover { box-shadow: 0 18px 34px rgba(25, 29, 36, 0.12); }
+.stat-card:hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
 
 .stat-card {
   padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::after {
+  content: ''; /* Cria um detalhe de cor no cartão. */
+  position: absolute; /* Fixa o detalhe no canto. */
+  right: -28px; /* Desloca o detalhe para a borda. */
+  bottom: -34px; /* Desloca o detalhe para a borda. */
+  width: 100px; /* Define o tamanho do detalhe. */
+  height: 100px; /* Define o tamanho do detalhe. */
+  border-radius: 50%; /* Arredonda o detalhe. */
+  background: rgba(8, 127, 196, 0.06); /* Usa um azul quase transparente. */
+  pointer-events: none; /* Não interfere nas interações. */
 }
 
 .stat-card span {

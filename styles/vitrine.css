@@ -1,19 +1,21 @@
 /* Estilos para a página pública da loja */
 .customer-app {
-  min-height: 100vh;
-  background: #fffaf7;
+  min-height: 100vh; /* Faz a vitrine preencher a janela. */
+  background: linear-gradient(180deg, #fffaf7 0%, #fff 34%, #f8fbfb 100%); /* Cria profundidade no fundo da loja. */
 }
 
 .customer-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.9);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  display: flex; /* Alinha marca e ações no cabeçalho. */
+  align-items: center; /* Centraliza os itens verticalmente. */
+  justify-content: space-between; /* Separa marca e ações. */
+  padding: 18px 22px; /* Define o espaçamento do cabeçalho. */
+  border-bottom: 1px solid var(--line); /* Separa cabeçalho e conteúdo. */
+  background: rgba(255, 255, 255, 0.86); /* Mantém o cabeçalho translúcido. */
+  backdrop-filter: blur(16px); /* Suaviza o conteúdo atrás do cabeçalho. */
+  box-shadow: 0 4px 20px rgba(25, 29, 36, 0.04); /* Cria separação sutil ao rolar. */
+  position: sticky; /* Mantém o cabeçalho visível durante a rolagem. */
+  top: 0; /* Fixa o cabeçalho no topo. */
+  z-index: 10; /* Mantém o cabeçalho acima do conteúdo. */
 }
 
 .customer-brand-mark {
@@ -23,7 +25,7 @@
   height: 34px;
   overflow: hidden;
   border-radius: 10px;
-  background: var(--coral);
+  background: linear-gradient(135deg, var(--coral), #ff8d53);
   color: #fff;
   font-weight: 800;
 }
@@ -37,16 +39,16 @@
 }
 
 .customer-header-icon {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border: 0;
-  border-radius: 50%;
-  background: transparent;
-  color: var(--coral);
-  font-size: 1.05rem;
+  position: relative; /* Permite posicionar indicadores do ícone. */
+  display: grid; /* Centraliza o conteúdo do botão. */
+  place-items: center; /* Centraliza horizontal e verticalmente. */
+  width: 34px; /* Define a largura do botão. */
+  height: 34px; /* Define a altura do botão. */
+  border: 0; /* Remove a borda padrão. */
+  border-radius: 50%; /* Cria um botão circular. */
+  background: transparent; /* Mantém o botão sem fundo inicial. */
+  color: var(--coral); /* Colore o ícone com a cor principal. */
+  font-size: 1.05rem; /* Define o tamanho do ícone. */
 }
 
 .customer-header-icon:hover { background: var(--coral-soft); transform: translateY(-2px); }
@@ -54,25 +56,42 @@
 .chat-shop-button {
   border: 1px solid var(--line);
   background: #fff;
-  border-radius: 12px;
+  border-radius: 11px;
   padding: 10px 14px;
   font-weight: 700;
+  box-shadow: 0 4px 12px rgba(25, 29, 36, 0.04);
+}
+
+.chat-shop-button:hover {
+  border-color: var(--coral);
+  background: var(--coral-soft);
+  color: var(--coral-strong);
+  transform: translateY(-2px);
 }
 
 .store-hero {
   position: relative;
   display: flex;
   align-items: flex-end;
-  min-height: 230px;
+  min-height: 270px;
   padding: 28px 22px;
   background-color: #17354a;
   background-position: center;
   background-size: cover;
   color: #fff;
+  isolation: isolate;
+}
+
+.store-hero::before {
+  content: ''; /* Cria um véu para preservar o contraste do texto. */
+  position: absolute; /* Ocupa toda a área do destaque. */
+  inset: 0; /* Expande o véu até as quatro bordas. */
+  background: linear-gradient(90deg, rgba(5, 24, 42, 0.78), rgba(5, 24, 42, 0.2) 68%, rgba(5, 24, 42, 0.05)); /* Escurece o lado do texto. */
+  z-index: -1; /* Mantém o véu atrás do conteúdo. */
 }
 
 .store-hero-content { position: relative; z-index: 1; max-width: 620px; }
-.store-hero h1 { margin: 10px 0 6px; font-size: clamp(1.8rem, 5vw, 3rem); }
+.store-hero h1 { margin: 10px 0 6px; font-size: clamp(2rem, 5vw, 3.4rem); line-height: 1; letter-spacing: -0.04em; }
 .store-hero p { margin: 0 0 8px; color: rgba(255, 255, 255, 0.88); }
 .store-hero small { color: rgba(255, 255, 255, 0.8); }
 
@@ -99,6 +118,7 @@
   padding: 6px 10px;
   font-size: 0.72rem;
   font-weight: 700;
+  box-shadow: 0 4px 12px rgba(29, 133, 83, 0.12);
 }
 
 .store-hero .open-pill { background: rgba(69, 210, 132, 0.92); color: #083a25; }
@@ -106,24 +126,27 @@
 .customer-tabs {
   display: flex;
   gap: 10px;
-  padding: 0 22px 20px;
+  padding: 16px 22px 18px;
   overflow-x: auto;
   white-space: nowrap;
-  background: #fff;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 5px 18px rgba(25, 29, 36, 0.04);
 }
 
 .customer-tabs button {
   border: none;
   background: transparent;
-  padding: 10px 14px;
+  padding: 10px 15px;
   border-radius: 10px;
   color: var(--muted);
   font-weight: 700;
+  white-space: nowrap;
 }
 
 .customer-tabs button.active {
   background: var(--coral-soft);
   color: var(--coral);
+  box-shadow: inset 0 -2px 0 var(--coral);
 }
 
 .customer-tabs button:hover:not(.active) { color: var(--coral); background: #fff8f4; }
@@ -134,9 +157,10 @@
   gap: 12px;
   margin: 0 22px 18px;
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: 14px;
   background: linear-gradient(90deg, #f4a400, #f7c53f);
   color: #4b2800;
+  box-shadow: 0 10px 24px rgba(244, 164, 0, 0.15);
 }
 
 .delivery-banner-icon { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 9px; background: rgba(255,255,255,.55); font-size: 1.4rem; }
@@ -148,7 +172,7 @@
   padding: 0 22px 120px;
 }
 
-.customer-section { margin-bottom: 24px; }
+.customer-section { margin-bottom: 30px; }
 .repeat-products { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .repeat-products .customer-product { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; }
 .repeat-products .food-image { height: 92px; }
@@ -165,9 +189,9 @@
   white-space: nowrap;
 }
 
-.customer-categories a { color: var(--ink); font-size: 0.82rem; font-weight: 700; text-decoration: none; }
+.customer-categories a { color: var(--ink); font-size: 0.82rem; font-weight: 700; text-decoration: none; position: relative; padding: 4px 0; }
 .customer-categories a:first-child { color: var(--coral); }
-.customer-categories a:hover { color: var(--coral); }
+.customer-categories a:hover { color: var(--coral); transform: translateY(-1px); }
 .featured-section { padding-top: 18px; }
 .featured-section, .repeat-section, .customer-menu > section { animation: fade-in-up 420ms var(--ease-out) both; }
 .repeat-section { animation-delay: 60ms; }
@@ -178,14 +202,15 @@
 .customer-products {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 18px;
+  gap: 20px;
 }
 
 .customer-product {
   background: #fff;
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: 18px;
   overflow: hidden;
+  box-shadow: 0 8px 24px rgba(25, 29, 36, 0.05);
 }
 
 .customer-product:hover { transform: translateY(-5px); border-color: rgba(244, 81, 44, 0.28); box-shadow: 0 16px 28px rgba(25, 29, 36, 0.12); }
@@ -203,15 +228,22 @@
   padding: 14px;
 }
 
+.customer-product-info h3,
+.customer-product-info h4 {
+  margin-top: 0;
+  letter-spacing: -0.02em;
+}
+
 .add-food {
   width: calc(100% - 28px);
   margin: 0 14px 14px;
   border: none;
-  border-radius: 10px;
-  background: var(--coral);
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--coral), #ff7048);
   color: #fff;
   padding: 10px 12px;
   font-weight: 700;
+  box-shadow: 0 6px 14px rgba(244, 81, 44, 0.14);
 }
 
 .add-food:hover { background: var(--coral-strong); transform: translateY(-1px); box-shadow: 0 8px 16px rgba(244, 81, 44, 0.22); }
@@ -220,23 +252,29 @@
   position: fixed;
   right: 22px;
   bottom: 24px;
-  background: var(--ink);
+  background: linear-gradient(135deg, #172b3c, #27495d);
   color: #fff;
   border: none;
   border-radius: 999px;
   padding: 14px 18px;
   font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 18px 28px rgba(22, 28, 35, 0.18);
 }
 
 .floating-cart:hover { transform: translateY(-3px); box-shadow: 0 22px 34px rgba(22, 28, 35, 0.24); }
+
+.floating-cart:focus-visible {
+  outline-color: var(--coral);
+}
 
 .customer-bottom-nav { display: none; }
 
 .customer-empty {
   background: #fff;
   border: 1px dashed var(--line);
-  border-radius: 16px;
+  border-radius: 18px;
   padding: 18px;
   color: var(--muted);
+  box-shadow: var(--shadow-soft);
 }
