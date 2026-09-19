@@ -5,6 +5,7 @@ const stateKey = 'pedeia-state-v1';
 const sessionKey = 'pedeia-session-v1';
 let currentAuthTab = 'register';
 let accessNotice = '';
+let registrationInProgress = false;
 
 let currentUser = null;
 let currentSession = null;
@@ -890,6 +891,14 @@ function switchAuth(type) {
 async function registerMerchant(event) {
   event.preventDefault();
 
+  if (registrationInProgress) return;
+  registrationInProgress = true;
+  const submitButton = event.currentTarget.querySelector('button[type="submit"]');
+  if (submitButton) {
+    submitButton.disabled = true;
+    submitButton.textContent = 'Enviando solicitação...';
+  }
+
   const data = new FormData(event.currentTarget);
 
   const name = String(data.get('name') || '').trim();
@@ -899,6 +908,7 @@ async function registerMerchant(event) {
   const shopType = String(data.get('shopType') || 'Loja').trim();
 
   if (!name || !email || !shopName || password.length < 6) {
+    registrationInProgress = false;
     notify('Preencha todos os campos corretamente.');
     return;
   }
@@ -914,7 +924,11 @@ async function registerMerchant(event) {
 
     if (authError) {
       console.error(authError);
-      notify(authError.message || 'Erro ao criar a conta.');
+      const rateLimited = authError.code === 'over_email_send_rate_limit'
+        || /email rate limit exceeded/i.test(authError.message || '');
+      notify(rateLimited
+        ? 'O limite de e-mails do Supabase foi atingido. Aguarde alguns minutos antes de tentar novamente ou configure um SMTP próprio no Supabase.'
+        : authError.message || 'Erro ao criar a conta.');
       return;
     }
 
@@ -952,7 +966,17 @@ async function registerMerchant(event) {
     notify('Solicitação enviada para análise.');
   } catch (error) {
     console.error(error);
-    notify('Erro inesperado ao criar a conta.');
+    const rateLimited = error?.code === 'over_email_send_rate_limit'
+      || /email rate limit exceeded/i.test(error?.message || '');
+    notify(rateLimited
+      ? 'O limite de e-mails do Supabase foi atingido. Aguarde alguns minutos e tente novamente.'
+      : 'Erro inesperado ao criar a conta.');
+  } finally {
+    registrationInProgress = false;
+    if (submitButton) {
+      submitButton.disabled = false;
+      submitButton.textContent = 'Criar minha conta ->';
+    }
   }
 }
 async function loginMerchant(event) {
