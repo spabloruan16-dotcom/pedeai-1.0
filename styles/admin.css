@@ -268,7 +268,7 @@
 
 .category-row {
   display: grid; /* Organiza índice, categoria, quantidade e ação. */
-  grid-template-columns: 34px minmax(0, 1fr) auto auto; /* Mantém as informações alinhadas. */
+  grid-template-columns: 34px minmax(0, 1fr) auto auto auto; /* Mantém informações e ações alinhadas. */
   align-items: center; /* Centraliza o conteúdo da categoria. */
   gap: 12px; /* Separa as colunas da linha. */
   padding: 13px 0; /* Cria espaço entre categorias. */
@@ -453,6 +453,32 @@
   min-height: 34px; /* Mantém a ação do cabeçalho confortável. */
   padding: 7px 10px; /* Dá espaço ao texto da ação. */
   font-size: 0.72rem; /* Mantém a ação compacta. */
+}
+
+.chat-thread-actions {
+  display: flex; /* Mantém fixar e fechar lado a lado. */
+  align-items: center; /* Centraliza as ações. */
+  gap: 8px; /* Separa os botões do cabeçalho. */
+}
+
+.close-conversation {
+  display: grid; /* Permite centralizar o X. */
+  place-items: center; /* Centraliza o símbolo de fechar. */
+  width: 34px; /* Define uma área de toque confortável. */
+  height: 34px; /* Mantém o botão quadrado. */
+  border: 1px solid var(--line); /* Define o contorno do botão. */
+  border-radius: 10px; /* Arredonda o botão. */
+  background: #fff; /* Mantém o botão leve. */
+  color: var(--muted); /* Deixa o X discreto. */
+  font-size: 1.35rem; /* Dá clareza ao símbolo. */
+  line-height: 1; /* Evita desalinhamento do X. */
+}
+
+.close-conversation:hover {
+  border-color: var(--danger); /* Destaca o fechamento no hover. */
+  background: #fff1f1; /* Usa um fundo de alerta suave. */
+  color: var(--danger); /* Reforça a ação de fechar. */
+  transform: translateY(-1px); /* Dá retorno visual ao hover. */
 }
 
 .conversation-unread {
@@ -825,6 +851,7 @@
 .printer-status { display: inline-block; padding: 4px 8px; border-radius: 5px; background: #ddf5e7; color: #177c4e; font-size: 0.7rem; font-weight: 800; }
 .printer-card-actions { display: flex; align-items: center; gap: 8px; }
 .icon-button { width: 34px; height: 34px; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--muted); font-size: 1.2rem; }
+.printer-delete-button:hover { border-color: rgba(217, 93, 93, 0.4); background: #fff1f1; color: var(--danger); transform: translateY(-1px); }
 
 .printer-model-cta {
   display: grid;

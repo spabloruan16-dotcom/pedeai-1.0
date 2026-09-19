@@ -163,10 +163,12 @@
   .manage-row .dots { grid-column: 3; grid-row: 2; }
   .category-row { grid-template-columns: 30px minmax(0, 1fr) auto; gap: 9px; }
   .category-row > small { grid-column: 2; }
-  .category-row button { grid-column: 3; grid-row: 1 / span 2; }
+  .category-row .category-edit-button { grid-column: 3; grid-row: 1; }
+  .category-row button:not(.category-edit-button) { grid-column: 3; grid-row: 2; }
   .chat-layout { grid-template-columns: 1fr; }
   .chat-thread { min-height: 300px; }
   .chat-thread-heading { align-items: flex-start; flex-direction: column; }
+  .chat-thread-actions { width: 100%; justify-content: flex-end; }
   .conversation-list { max-height: 340px; overflow: auto; }
   .menu-toolbar { align-items: stretch; flex-direction: column; gap: 10px; }
   .category-tabs { width: 100%; }

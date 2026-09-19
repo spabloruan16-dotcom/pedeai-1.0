@@ -1517,6 +1517,7 @@ function categoryView() {
             <span>${String(index + 1).padStart(2, '0')}</span>
             <strong>${esc(category)}</strong>
             <small>${state.products.filter((item) => item.category === category).length} produtos</small>
+            <button class="category-edit-button" data-action="edit-category" data-category="${esc(category)}">Editar</button>
             <button data-action="remove-category" data-category="${esc(category)}">Remover</button>
           </div>
         `).join('') : empty('Nenhuma categoria criada', 'Comece criando a primeira aba.')}
@@ -1590,7 +1591,10 @@ function chatView() {
         ${selected ? `
           <header class="chat-thread-heading">
             <div><span class="eyebrow">CONVERSA</span><h2>${esc(conversationTitle(selected.key, selected.messages))}</h2></div>
-            <button class="conversation-pin thread-pin" data-chat-pin-conversation="${esc(selected.key)}" aria-label="${selected.pinned ? 'Desafixar conversa' : 'Fixar conversa'}">${selected.pinned ? '★ Fixada' : '☆ Fixar'}</button>
+            <div class="chat-thread-actions">
+              <button class="conversation-pin thread-pin" data-chat-pin-conversation="${esc(selected.key)}" aria-label="${selected.pinned ? 'Desafixar conversa' : 'Fixar conversa'}">${selected.pinned ? '★ Fixada' : '☆ Fixar'}</button>
+              <button class="close-conversation" data-close-chat aria-label="Fechar conversa" title="Fechar conversa">×</button>
+            </div>
           </header>
           <div class="chat-messages">
             ${selected.messages.map((message) => `
@@ -1666,7 +1670,7 @@ function printersView() {
           </div>
           <div class="printer-card-actions">
             <button class="secondary-button" data-action="print-test">▣ Testar</button>
-            <button class="icon-button" data-printer-tab="models" aria-label="Configurar impressora">⋮</button>
+            <button class="icon-button printer-delete-button" data-action="delete-printer" data-printer-id="${esc(activePrinter.id)}" aria-label="Excluir impressora" title="Excluir impressora">⋮</button>
           </div>
         </article>
       ` : '<div class="printer-empty">Nenhuma impressora cadastrada.</div>'}
@@ -2018,6 +2022,14 @@ function bindMerchant() {
     };
   });
 
+  document.querySelectorAll('[data-close-chat]').forEach((button) => {
+    button.onclick = () => {
+      state.chatConversation = null;
+      save();
+      render();
+    };
+  });
+
   document.querySelectorAll('[data-chat-pin-conversation]').forEach((button) => {
     button.onclick = async () => {
       const key = button.dataset.chatPinConversation;
@@ -2137,6 +2149,7 @@ function handleAction(event) {
   const action = button.dataset.action;
 
   if (action === 'new-category') return categoryDialog();
+  if (action === 'edit-category') return categoryDialog(button.dataset.category);
   if (action === 'new-product' || action === 'edit-product') return productDialog(button.dataset.id);
   if (action === 'remove-category') {
     const categoryName = button.dataset.category;
@@ -2230,6 +2243,19 @@ function handleAction(event) {
       status: 'Disponivel',
       default: false
     });
+    return renderSaved();
+  }
+  if (action === 'delete-printer') {
+    const printer = state.printers.find((item) => String(item.id) === String(button.dataset.printerId));
+    if (!printer) return;
+    const confirmed = window.confirm(`Excluir a impressora "${printer.name}"?`);
+    if (!confirmed) return;
+    state.printers = state.printers.filter((item) => item !== printer);
+    if (state.printerConfig.deviceName === printer.name) {
+      const replacement = state.printers.find((item) => item.status === 'Conectada') || state.printers[0];
+      state.printerConfig.deviceName = replacement?.name || '';
+      state.printerConfig.mode = replacement?.type || 'cabo';
+    }
     return renderSaved();
   }
   if (action === 'connect-printer') {
@@ -2465,23 +2491,50 @@ function printReceipt(order) {
   }
 }
 
-function categoryDialog() {
+function categoryDialog(existingName = '') {
+  const editing = Boolean(existingName);
   showDialog(`
     <div class="dialog-head">
-      <span class="category-icon">+</span>
-      <h2>Nova categoria</h2>
-      <p>Crie uma aba para organizar seus produtos.</p>
+      <span class="category-icon">${editing ? '✎' : '+'}</span>
+      <h2>${editing ? 'Editar categoria' : 'Nova categoria'}</h2>
+      <p>${editing ? 'Altere o nome sem perder os produtos desta categoria.' : 'Crie uma aba para organizar seus produtos.'}</p>
     </div>
     <form id="category-form" class="dialog-form">
-      <label>Nome da categoria<input name="name" required placeholder="Ex.: Tapiocas"></label>
-      <button class="primary-button">Criar categoria</button>
+      <label>Nome da categoria<input name="name" required value="${esc(existingName)}" placeholder="Ex.: Tapiocas"></label>
+      <button class="primary-button">${editing ? 'Salvar alterações' : 'Criar categoria'}</button>
     </form>
   `);
 
-  document.querySelector('#category-form').onsubmit = (event) => {
+  document.querySelector('#category-form').onsubmit = async (event) => {
     event.preventDefault();
     const name = String(new FormData(event.currentTarget).get('name') || '').trim();
-    if (name && !state.categories.includes(name)) state.categories.push(name);
+    if (!name || (name !== existingName && state.categories.includes(name))) {
+      notify('Escolha um nome de categoria diferente.');
+      return;
+    }
+
+    if (editing) {
+      const categoryIndex = state.categories.indexOf(existingName);
+      if (categoryIndex < 0) return;
+      if (state.shop?.id && typeof supabaseClient !== 'undefined') {
+        const { error } = await supabaseClient
+          .from('categorias')
+          .update({ nome: name, updated_at: new Date().toISOString() })
+          .eq('loja_id', state.shop.id)
+          .eq('nome', existingName);
+        if (error) {
+          console.error('Erro ao editar categoria no Supabase:', error);
+          notify('Não foi possível editar a categoria no banco.');
+          return;
+        }
+      }
+      state.categories[categoryIndex] = name;
+      state.products.forEach((product) => {
+        if (product.category === existingName) product.category = name;
+      });
+    } else if (name) {
+      state.categories.push(name);
+    }
     closeDialog();
     renderSaved();
   };
@@ -2501,9 +2554,28 @@ function productDialog(id) {
       <label>Categoria<select name="category" required>${state.categories.map((category) => `<option ${product?.category === category ? 'selected' : ''}>${esc(category)}</option>`).join('')}</select></label>
       <label>Descricao<textarea name="description" required placeholder="Ingredientes, tamanho e diferenciais.">${esc(product?.description || '')}</textarea></label>
       <label>Preco<input name="price" type="number" min="0.01" step="0.01" required value="${product?.price || ''}" placeholder="0,00"></label>
-      <button class="primary-button">Salvar produto</button>
+      <div class="dialog-actions">
+        ${product ? '<button class="danger-button" type="button" data-dialog-delete-product>Excluir produto</button>' : ''}
+        <button class="primary-button">Salvar produto</button>
+      </div>
     </form>
   `);
+
+  document.querySelector('[data-dialog-delete-product]')?.addEventListener('click', async () => {
+    if (!window.confirm(`Excluir o produto "${product.name}"?`)) return;
+    if (product.id && isUuid(product.id) && typeof supabaseClient !== 'undefined') {
+      const { error } = await supabaseClient.from('produtos').delete().eq('id', product.id).eq('loja_id', state.shop.id);
+      if (error) {
+        console.error('Erro ao excluir produto no Supabase:', error);
+        notify('Não foi possível excluir o produto do banco.');
+        return;
+      }
+    }
+    state.products = state.products.filter((item) => item !== product);
+    closeDialog();
+    renderSaved();
+    notify('Produto excluído.');
+  });
 
   document.querySelector('#product-form').onsubmit = (event) => {
     event.preventDefault();
