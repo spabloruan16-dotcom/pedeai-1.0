@@ -160,6 +160,363 @@
   box-shadow: 0 8px 18px rgba(244, 81, 44, 0.16); /* Reforça a elevação. */
 }
 
+.manage-row {
+  display: grid; /* Organiza foto, dados, preço, disponibilidade e ação. */
+  grid-template-columns: 58px minmax(0, 1fr) auto 42px auto; /* Reserva uma coluna estável para cada informação. */
+  align-items: center; /* Centraliza o conteúdo da linha. */
+  gap: 14px; /* Cria espaço entre as colunas. */
+  padding: 13px 0; /* Separa visualmente cada produto. */
+  border-top: 1px solid var(--line); /* Divide os produtos da lista. */
+}
+
+.manage-emoji,
+.detail-item-photo {
+  display: grid; /* Permite centralizar o placeholder. */
+  place-items: center; /* Centraliza foto ou placeholder. */
+  width: 58px; /* Define a largura da miniatura. */
+  height: 58px; /* Define a altura da miniatura. */
+  overflow: hidden; /* Recorta a imagem dentro da moldura. */
+  border: 1px solid rgba(8, 127, 196, 0.14); /* Cria uma moldura delicada. */
+  border-radius: 14px; /* Arredonda a miniatura. */
+  background: linear-gradient(135deg, #f6eee9, #eef7f8); /* Dá aparência de cartão de foto vazio. */
+  color: var(--muted); /* Define a cor do placeholder. */
+}
+
+.manage-emoji img,
+.detail-item-photo img {
+  width: 100%; /* Faz a imagem preencher a moldura. */
+  height: 100%; /* Faz a imagem preencher a moldura. */
+  object-fit: cover; /* Mantém a imagem preenchida sem deformar. */
+  transition: transform 260ms var(--ease-out); /* Suaviza o zoom da miniatura. */
+}
+
+.manage-row:hover .manage-emoji img {
+  transform: scale(1.06); /* Aproxima levemente a foto ao passar o mouse. */
+}
+
+.food-placeholder {
+  position: relative; /* Permite desenhar um marcador simples. */
+  width: 24px; /* Define a largura do marcador. */
+  height: 24px; /* Define a altura do marcador. */
+  border: 2px solid currentColor; /* Desenha o contorno do marcador. */
+  border-radius: 8px; /* Arredonda o marcador. */
+  opacity: 0.38; /* Mantém o placeholder discreto. */
+}
+
+.food-placeholder::after {
+  content: ''; /* Cria o detalhe interno do placeholder. */
+  position: absolute; /* Fixa o detalhe na parte inferior. */
+  right: 3px; /* Ajusta o detalhe à direita. */
+  bottom: 3px; /* Ajusta o detalhe à base. */
+  width: 9px; /* Define a largura do detalhe. */
+  height: 9px; /* Define a altura do detalhe. */
+  border-radius: 50%; /* Cria um pequeno círculo. */
+  background: currentColor; /* Usa a mesma cor do contorno. */
+}
+
+.manage-row > div {
+  min-width: 0; /* Permite conter nomes e descrições longas. */
+}
+
+.manage-row > div strong,
+.manage-row > div small {
+  display: block; /* Empilha nome e descrição. */
+  overflow: hidden; /* Evita estourar a linha. */
+  text-overflow: ellipsis; /* Indica textos cortados. */
+  white-space: nowrap; /* Mantém a linha compacta. */
+}
+
+.manage-row > div small {
+  margin-top: 4px; /* Separa a descrição do nome. */
+  color: var(--muted); /* Suaviza os detalhes do produto. */
+  font-size: 0.73rem; /* Mantém a descrição discreta. */
+}
+
+.manage-row > b {
+  color: var(--ink); /* Destaca o preço do produto. */
+  font-size: 0.86rem; /* Mantém o preço proporcional à linha. */
+  white-space: nowrap; /* Evita quebra do preço. */
+}
+
+.manage-row .dots,
+.category-row button {
+  display: inline-flex; /* Alinha ícone textual e label. */
+  align-items: center; /* Centraliza o conteúdo do botão. */
+  justify-content: center; /* Centraliza horizontalmente. */
+  min-height: 34px; /* Mantém uma área de clique confortável. */
+  border: 1px solid var(--line); /* Define a borda neutra. */
+  border-radius: 9px; /* Arredonda as ações. */
+  padding: 7px 11px; /* Dá espaço ao texto. */
+  background: #fff; /* Mantém o botão leve. */
+  color: var(--blue-deep); /* Diferencia edição como ação segura. */
+  font-size: 0.72rem; /* Mantém os botões compactos. */
+  font-weight: 800; /* Melhora a leitura da ação. */
+}
+
+.manage-row .dots::before {
+  content: '✎'; /* Identifica rapidamente a ação de edição. */
+  margin-right: 5px; /* Separa o símbolo do texto. */
+  font-size: 0.9rem; /* Dá presença ao símbolo. */
+}
+
+.manage-row .dots:hover {
+  border-color: rgba(8, 127, 196, 0.4); /* Destaca a ação de edição. */
+  background: var(--blue-soft); /* Usa o fundo azul suave. */
+  color: var(--blue); /* Reforça a ação selecionável. */
+  transform: translateY(-1px); /* Dá retorno visual ao hover. */
+}
+
+.category-row {
+  display: grid; /* Organiza índice, categoria, quantidade e ação. */
+  grid-template-columns: 34px minmax(0, 1fr) auto auto; /* Mantém as informações alinhadas. */
+  align-items: center; /* Centraliza o conteúdo da categoria. */
+  gap: 12px; /* Separa as colunas da linha. */
+  padding: 13px 0; /* Cria espaço entre categorias. */
+  border-bottom: 1px solid var(--line); /* Divide as categorias. */
+}
+
+.category-row:last-child {
+  border-bottom: 0; /* Remove a linha extra da última categoria. */
+}
+
+.category-row > span:first-child {
+  display: grid; /* Permite centralizar o número. */
+  place-items: center; /* Centraliza o número da categoria. */
+  width: 30px; /* Define a largura do marcador. */
+  height: 30px; /* Define a altura do marcador. */
+  border-radius: 9px; /* Arredonda o marcador. */
+  background: var(--blue-soft); /* Usa o azul suave para indexação. */
+  color: var(--blue-deep); /* Contrasta o número. */
+  font-size: 0.72rem; /* Mantém o índice discreto. */
+  font-weight: 800; /* Destaca a ordem da categoria. */
+}
+
+.category-row > small {
+  color: var(--muted); /* Suaviza a contagem de produtos. */
+  font-size: 0.74rem; /* Mantém a contagem compacta. */
+  white-space: nowrap; /* Evita quebrar a contagem. */
+}
+
+.category-row button {
+  border-color: rgba(217, 93, 93, 0.22); /* Usa uma borda de remoção discreta. */
+  background: #fff7f7; /* Sinaliza uma ação destrutiva sem pesar. */
+  color: var(--danger); /* Usa a cor de perigo para remoção. */
+}
+
+.category-row button::before {
+  content: '×'; /* Identifica rapidamente a ação de remover. */
+  margin-right: 5px; /* Separa o símbolo do texto. */
+  font-size: 1rem; /* Dá presença ao símbolo. */
+}
+
+.category-row button:hover {
+  border-color: var(--danger); /* Reforça a ação destrutiva no hover. */
+  background: #fff0f0; /* Aumenta o alerta visual. */
+  transform: translateY(-1px); /* Dá retorno visual ao hover. */
+}
+
+.detail-item {
+  display: flex; /* Alinha miniatura e informações do item. */
+  align-items: center; /* Centraliza a miniatura. */
+  gap: 12px; /* Separa foto e texto. */
+  padding: 10px 0; /* Dá respiro a cada item. */
+  border-bottom: 1px solid var(--line); /* Divide os itens do pedido. */
+}
+
+.detail-item:last-child {
+  border-bottom: 0; /* Evita uma linha sobrando no fim da lista. */
+}
+
+.detail-item-photo {
+  flex: 0 0 48px; /* Mantém a miniatura estável no diálogo. */
+  width: 48px; /* Define a largura compacta da foto. */
+  height: 48px; /* Define a altura compacta da foto. */
+  border-radius: 12px; /* Arredonda a miniatura do pedido. */
+}
+
+.detail-item > span:last-child {
+  display: grid; /* Empilha nome e descrição do item. */
+  gap: 3px; /* Separa os textos do item. */
+  min-width: 0; /* Permite conter descrições extensas. */
+}
+
+.detail-item small {
+  color: var(--muted); /* Suaviza a descrição do item. */
+  font-size: 0.72rem; /* Mantém o detalhe secundário compacto. */
+}
+
+.chat-layout {
+  display: grid; /* Divide a tela entre conversas e conversa aberta. */
+  grid-template-columns: minmax(240px, 0.72fr) minmax(0, 1.5fr); /* Dá mais espaço à conversa selecionada. */
+  gap: 16px; /* Separa lista e thread. */
+  align-items: start; /* Mantém os painéis alinhados pelo topo. */
+}
+
+.conversation-list,
+.chat-thread {
+  min-width: 0; /* Permite conter textos longos. */
+  padding: 14px; /* Cria respiro nos painéis de conversa. */
+}
+
+.conversation-list-heading {
+  display: flex; /* Alinha título e contador. */
+  align-items: center; /* Centraliza o cabeçalho. */
+  justify-content: space-between; /* Coloca contador no canto. */
+  padding: 4px 5px 12px; /* Separa o cabeçalho da lista. */
+  color: var(--ink); /* Define a cor do título. */
+}
+
+.conversation-list-heading span {
+  display: grid; /* Permite centralizar a contagem. */
+  place-items: center; /* Centraliza o número. */
+  min-width: 24px; /* Mantém formato circular com números pequenos. */
+  height: 24px; /* Define a altura do contador. */
+  border-radius: 999px; /* Cria um contador arredondado. */
+  background: var(--blue-soft); /* Destaca a quantidade de conversas. */
+  color: var(--blue-deep); /* Mantém o número contrastante. */
+  font-size: 0.7rem; /* Mantém o contador compacto. */
+  font-weight: 800; /* Destaca o número. */
+}
+
+.conversation-row {
+  display: grid; /* Organiza seleção e fixação. */
+  grid-template-columns: minmax(0, 1fr) 34px; /* Reserva espaço para a estrela. */
+  align-items: center; /* Centraliza os controles. */
+  border-top: 1px solid var(--line); /* Divide as conversas. */
+}
+
+.conversation-select {
+  display: flex; /* Alinha avatar e resumo. */
+  align-items: center; /* Centraliza o conteúdo. */
+  min-width: 0; /* Permite conter títulos longos. */
+  gap: 10px; /* Separa avatar e texto. */
+  border: 0; /* Remove borda padrão. */
+  padding: 12px 5px; /* Cria área de clique confortável. */
+  background: transparent; /* Mantém a lista leve. */
+  text-align: left; /* Alinha textos à esquerda. */
+}
+
+.conversation-row.selected .conversation-select {
+  color: var(--blue); /* Destaca a conversa ativa. */
+}
+
+.conversation-row.selected {
+  background: linear-gradient(90deg, rgba(8, 127, 196, 0.08), transparent); /* Marca a conversa selecionada. */
+}
+
+.conversation-avatar {
+  display: grid; /* Permite centralizar a inicial. */
+  place-items: center; /* Centraliza a inicial. */
+  flex: 0 0 34px; /* Mantém o avatar estável. */
+  width: 34px; /* Define o avatar. */
+  height: 34px; /* Define o avatar. */
+  border-radius: 12px; /* Arredonda o avatar. */
+  background: var(--coral-soft); /* Usa o fundo da marca. */
+  color: var(--coral); /* Colore a inicial. */
+  font-family: var(--font-display); /* Dá personalidade ao avatar. */
+  font-weight: 800; /* Destaca a inicial. */
+}
+
+.conversation-summary {
+  display: grid; /* Empilha título e prévia. */
+  min-width: 0; /* Permite truncar o conteúdo. */
+  gap: 3px; /* Separa título e prévia. */
+}
+
+.conversation-summary strong,
+.conversation-summary small {
+  overflow: hidden; /* Evita estourar a largura. */
+  text-overflow: ellipsis; /* Indica conteúdo cortado. */
+  white-space: nowrap; /* Mantém cada informação em uma linha. */
+}
+
+.conversation-summary strong { font-size: 0.78rem; }
+.conversation-summary small { color: var(--muted); font-size: 0.7rem; }
+
+.conversation-pin {
+  border: 0; /* Remove a borda nativa. */
+  border-radius: 9px; /* Arredonda o botão de fixar. */
+  padding: 7px 5px; /* Cria área de toque. */
+  background: transparent; /* Mantém a estrela discreta. */
+  color: #9aa6ad; /* Define a estrela não fixada. */
+  font-size: 1rem; /* Dá presença ao ícone. */
+}
+
+.conversation-pin:hover,
+.conversation-row.pinned .conversation-pin {
+  background: #fff6d9; /* Destaca a conversa fixada. */
+  color: #c58a00; /* Colore a estrela fixada. */
+  transform: translateY(-1px); /* Dá retorno visual ao hover. */
+}
+
+.thread-pin {
+  min-height: 34px; /* Mantém a ação do cabeçalho confortável. */
+  padding: 7px 10px; /* Dá espaço ao texto da ação. */
+  font-size: 0.72rem; /* Mantém a ação compacta. */
+}
+
+.conversation-unread {
+  flex: 0 0 7px; /* Mantém o indicador pequeno. */
+  width: 7px; /* Define o ponto de mensagem nova. */
+  height: 7px; /* Define o ponto de mensagem nova. */
+  border-radius: 50%; /* Torna o indicador circular. */
+  background: var(--coral); /* Destaca mensagens não lidas. */
+}
+
+.chat-thread {
+  min-height: 430px; /* Mantém o painel equilibrado mesmo sem seleção. */
+}
+
+.chat-thread-heading {
+  display: flex; /* Alinha título e ação de fixar. */
+  align-items: center; /* Centraliza o cabeçalho. */
+  justify-content: space-between; /* Separa título e ação. */
+  gap: 14px; /* Mantém respiro entre eles. */
+  padding: 4px 4px 16px; /* Cria espaço antes das mensagens. */
+  border-bottom: 1px solid var(--line); /* Separa cabeçalho e thread. */
+}
+
+.chat-thread-heading h2 {
+  margin: 5px 0 0; /* Ajusta o título do contato. */
+  font-size: 1.05rem; /* Mantém o título proporcional. */
+}
+
+.chat-thread .chat-messages {
+  max-height: 430px; /* Permite rolagem em conversas longas. */
+  padding: 16px 4px; /* Cria espaço ao redor das mensagens. */
+}
+
+.message {
+  position: relative; /* Permite posicionar ações da mensagem. */
+}
+
+.message.pinned-message {
+  border: 1px solid rgba(197, 138, 0, 0.35); /* Identifica mensagens fixadas. */
+  box-shadow: 0 6px 16px rgba(197, 138, 0, 0.1); /* Dá destaque à mensagem fixada. */
+}
+
+.message-text {
+  white-space: pre-wrap; /* Preserva quebras de linha da mensagem. */
+}
+
+.message-actions {
+  display: flex; /* Alinha as ações da mensagem. */
+  gap: 8px; /* Separa fixar e excluir. */
+  margin-top: 8px; /* Afasta as ações do texto. */
+}
+
+.message-actions button {
+  border: 0; /* Remove a borda padrão. */
+  padding: 0; /* Mantém a ação discreta. */
+  background: transparent; /* Não cria um botão pesado. */
+  color: var(--muted); /* Usa cor secundária. */
+  font-size: 0.66rem; /* Mantém ações compactas. */
+  font-weight: 700; /* Preserva legibilidade. */
+}
+
+.message-actions button:hover { color: var(--coral); text-decoration: underline; }
+.message-actions button:last-child:hover { color: var(--danger); }
+
 .order-config-panel {
   display: flex;
   align-items: center;
@@ -278,6 +635,94 @@
 
 .order-card:hover { transform: translateY(-4px) scale(1.01); box-shadow: 0 14px 26px rgba(25, 29, 36, 0.16); }
 
+.history-total {
+  display: inline-flex; /* Mantém a contagem como um indicador compacto. */
+  align-items: center; /* Centraliza o texto verticalmente. */
+  min-height: 42px; /* Mantém o mesmo peso visual dos controles do painel. */
+  padding: 8px 14px; /* Cria espaço interno no indicador. */
+  border: 1px solid rgba(50, 166, 109, 0.22); /* Usa uma borda de sucesso discreta. */
+  border-radius: 999px; /* Cria formato de cápsula. */
+  background: #effaf4; /* Indica visualmente pedidos concluídos. */
+  color: #22734a; /* Mantém o texto legível e positivo. */
+  font-size: 0.78rem; /* Deixa o indicador compacto. */
+  font-weight: 700; /* Dá destaque à contagem. */
+}
+
+.history-panel {
+  padding: clamp(16px, 3vw, 26px); /* Ajusta o respiro do histórico à tela. */
+}
+
+.history-list {
+  display: grid; /* Empilha os pedidos antigos. */
+  gap: 10px; /* Separa cada registro. */
+}
+
+.history-order {
+  display: grid; /* Organiza marcador, dados, data e ação. */
+  grid-template-columns: 38px minmax(0, 1fr) auto auto; /* Reserva espaço para cada informação. */
+  align-items: center; /* Centraliza o conteúdo do registro. */
+  gap: 14px; /* Cria respiro entre as colunas. */
+  padding: 14px; /* Cria espaço interno no registro. */
+  border: 1px solid var(--line); /* Separa visualmente os pedidos. */
+  border-radius: 14px; /* Arredonda cada registro. */
+  background: #fff; /* Mantém o histórico limpo e legível. */
+  transition: transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out), border-color 180ms var(--ease-soft); /* Suaviza a interação. */
+}
+
+.history-order:hover {
+  border-color: rgba(50, 166, 109, 0.35); /* Destaca o registro sob o cursor. */
+  box-shadow: var(--shadow-soft); /* Eleva o registro durante a interação. */
+  transform: translateY(-2px); /* Dá retorno visual ao hover. */
+}
+
+.history-order-mark {
+  display: grid; /* Permite centralizar o símbolo. */
+  place-items: center; /* Centraliza o símbolo de conclusão. */
+  width: 34px; /* Define o tamanho do marcador. */
+  height: 34px; /* Define o tamanho do marcador. */
+  border-radius: 50%; /* Cria um marcador circular. */
+  background: #e7f8ee; /* Usa o fundo de sucesso. */
+  color: #228252; /* Colore o símbolo de conclusão. */
+  font-weight: 800; /* Dá presença ao símbolo. */
+}
+
+.history-order-main {
+  min-width: 0; /* Permite que textos longos sejam contidos. */
+}
+
+.history-order-heading {
+  display: flex; /* Alinha identificador e status. */
+  align-items: center; /* Centraliza os elementos. */
+  gap: 9px; /* Separa identificador e status. */
+}
+
+.history-order-heading span {
+  padding: 4px 8px; /* Cria espaço no status. */
+  border-radius: 999px; /* Cria uma etiqueta arredondada. */
+  background: #effaf4; /* Diferencia o status concluído. */
+  color: #22734a; /* Define a cor do status. */
+  font-size: 0.68rem; /* Mantém a etiqueta compacta. */
+  font-weight: 800; /* Dá clareza ao status. */
+}
+
+.history-order-main p {
+  margin: 5px 0 0; /* Afasta os detalhes do título. */
+  color: var(--muted); /* Usa cor secundária nos detalhes. */
+  font-size: 0.78rem; /* Mantém os detalhes discretos. */
+}
+
+.history-order time {
+  color: var(--muted); /* Suaviza a data do registro. */
+  font-size: 0.74rem; /* Mantém a data compacta. */
+  white-space: nowrap; /* Evita quebra da data. */
+}
+
+.history-details {
+  min-height: 36px; /* Mantém a ação alinhada ao registro. */
+  padding: 8px 11px; /* Compacta o botão de detalhes. */
+  font-size: 0.72rem; /* Ajusta o texto ao contexto. */
+}
+
 .order-card-top,
 .customer-line,
 .order-payment,
@@ -298,6 +743,11 @@
 .order-observation { margin-top: 8px; color: var(--muted); font-size: 0.72rem; }
 .card-actions { margin-top: 12px; }
 .card-actions button { flex: 1; min-width: 0; padding: 8px 7px; font-size: 0.72rem; }
+.card-actions .secondary-button,
+.card-actions .primary-button {
+  min-height: 36px; /* Mantém ações do pedido uniformes. */
+  border-radius: 9px; /* Arredonda os botões da comanda. */
+}
 .empty-panel { min-height: 280px; display: grid; place-content: center; justify-items: center; gap: 8px; padding: 20px; text-align: center; color: rgba(255, 255, 255, 0.86); }
 .empty-panel strong { font-size: 0.82rem; }
 .empty-panel small { max-width: 170px; font-size: 0.72rem; }

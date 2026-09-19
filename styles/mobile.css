@@ -146,6 +146,28 @@
   .status-bubble-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .page-intro h1 { font-size: 2rem; }
   .board-tools { gap: 8px; }
+  .history-order {
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .history-order time { grid-column: 2; }
+  .history-details { grid-column: 3; grid-row: 1 / span 2; }
+  .history-total { align-self: flex-start; }
+  .manage-row {
+    grid-template-columns: 48px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .manage-emoji { width: 48px; height: 48px; border-radius: 12px; }
+  .manage-row > b { grid-column: 2; grid-row: 2; }
+  .manage-row .switch { grid-column: 3; grid-row: 1; }
+  .manage-row .dots { grid-column: 3; grid-row: 2; }
+  .category-row { grid-template-columns: 30px minmax(0, 1fr) auto; gap: 9px; }
+  .category-row > small { grid-column: 2; }
+  .category-row button { grid-column: 3; grid-row: 1 / span 2; }
+  .chat-layout { grid-template-columns: 1fr; }
+  .chat-thread { min-height: 300px; }
+  .chat-thread-heading { align-items: flex-start; flex-direction: column; }
+  .conversation-list { max-height: 340px; overflow: auto; }
   .menu-toolbar { align-items: stretch; flex-direction: column; gap: 10px; }
   .category-tabs { width: 100%; }
   .search-field { width: 100%; }

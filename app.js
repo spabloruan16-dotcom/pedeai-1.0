@@ -25,6 +25,7 @@ function defaultShopSchedule() {
 const blank = {
   view: 'dashboard',
   customerView: 'menu',
+  chatConversation: null,
   merchant: null,
   shop: null,
   categories: [],
@@ -288,14 +289,42 @@ async function updateOrderInSupabase(order) {
 
 async function persistMessageToSupabase(message, orderId = null) {
   if (typeof supabaseClient === 'undefined') return;
-  const { error } = await supabaseClient.from('mensagens').insert({
+  const { data, error } = await supabaseClient.from('mensagens').insert({
     pedido_id: orderId,
+    remetente_id: currentUser?.id || null,
     tipo_remetente: message.from,
     mensagem: message.text,
     vista_pelo_comerciante: message.vistaPeloComerciante || false,
-    vista_pelo_cliente: message.vistaPeloCliente || false
-  });
+    vista_pelo_cliente: message.vistaPeloCliente || false,
+    fixada: Boolean(message.fixada)
+  }).select('id').single();
   if (error) console.error('Erro ao salvar mensagem no Supabase:', error);
+  if (data?.id) {
+    message.id = data.id;
+    save();
+  }
+}
+
+async function updateMessageInSupabase(message, updates) {
+  if (!isUuid(message?.id) || typeof supabaseClient === 'undefined') return true;
+  const { error } = await supabaseClient.from('mensagens').update(updates).eq('id', message.id);
+  if (error) {
+    console.error('Erro ao atualizar mensagem no Supabase:', error);
+    notify('Não foi possível atualizar esta mensagem no banco.');
+    return false;
+  }
+  return true;
+}
+
+async function deleteMessageFromSupabase(message) {
+  if (!isUuid(message?.id) || typeof supabaseClient === 'undefined') return true;
+  const { error } = await supabaseClient.from('mensagens').delete().eq('id', message.id);
+  if (error) {
+    console.error('Erro ao excluir mensagem no Supabase:', error);
+    notify('A mensagem não foi excluída do banco.');
+    return false;
+  }
+  return true;
 }
 
 function money(value) {
@@ -703,7 +732,8 @@ async function loadOrdersAndMessagesFromSupabase() {
       time: new Date(message.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
       scope: message.pedido_id ? 'order' : 'store',
       vistaPeloComerciante: message.vista_pelo_comerciante,
-      vistaPeloCliente: message.vista_pelo_cliente
+      vistaPeloCliente: message.vista_pelo_cliente,
+      fixada: Boolean(message.fixada)
     }));
   }
 }
@@ -1050,6 +1080,20 @@ function nav(view, icon, text, count = '') {
   return `<button class="${state.view === view ? 'active' : ''}" data-view="${view}"><span class="nav-icon ${icon}"></span>${text}${badge > 0 ? `<b class="nav-badge">${badge}</b>` : ''}</button>`;
 }
 
+function isCompletedOrder(order) {
+  return ['Entregue', 'Finalizado', 'Cancelado'].includes(order?.status);
+}
+
+function activeOrders() {
+  return state.orders.filter((order) => !isCompletedOrder(order));
+}
+
+function completedOrders() {
+  return state.orders
+    .filter(isCompletedOrder)
+    .sort((first, second) => Number(second.updatedAt || second.createdAt || 0) - Number(first.updatedAt || first.createdAt || 0));
+}
+
 function unreadMessagesCount(type = 'merchant') {
   if (type === 'merchant') {
     return state.messages.filter((msg) => (msg.scope === 'order' || msg.scope === 'store') && msg.from !== 'merchant' && !msg.vistaPeloComerciante).length;
@@ -1109,7 +1153,8 @@ function merchantPanel() {
         </div>
 
         <nav class="side-nav">
-          ${nav('orders', 'orders', 'Pedidos', state.orders.length)}
+          ${nav('orders', 'orders', 'Pedidos', activeOrders().length)}
+          ${nav('history', 'orders', 'Histórico', completedOrders().length)}
           ${nav('dashboard', 'home', 'Visao geral')}
           ${nav('menu', 'menu', 'Cardapio')}
           ${nav('categories', 'categories', 'Categorias')}
@@ -1147,7 +1192,7 @@ function merchantPanel() {
           </div>
         </header>
 
-        ${page === 'orders' ? orderBoard() : page === 'dashboard' ? overview(revenue) : page === 'menu' ? menuView() : page === 'categories' ? categoryView() : page === 'chat' ? chatView() : page === 'printers' ? printersView() : settingsView()}
+        ${page === 'orders' ? orderBoard() : page === 'history' ? orderHistory() : page === 'dashboard' ? overview(revenue) : page === 'menu' ? menuView() : page === 'categories' ? categoryView() : page === 'chat' ? chatView() : page === 'printers' ? printersView() : settingsView()}
       </main>
       <button class="quick-chat-fab" data-action="quick-chat" aria-label="Abrir conversas">💬</button>
     </div>
@@ -1213,7 +1258,7 @@ function countStatus(status) {
 
 function orderBoard() {
   const query = String(state.orderQuery || '').toLowerCase();
-  const visible = state.orders.filter((order) => {
+  const visible = activeOrders().filter((order) => {
     const text = `${order.id} ${order.customer || ''}`.toLowerCase();
     const matchesQuery = !query || text.includes(query);
     const matchesFilter = !state.orderFilter || order.fulfillment === state.orderFilter;
@@ -1292,6 +1337,47 @@ function orderBoard() {
   `;
 }
 
+function orderHistory() {
+  const orders = completedOrders();
+
+  return `
+    <section class="page-intro board-intro">
+      <div>
+        <p class="eyebrow">MEMÓRIA DA SUA OPERAÇÃO</p>
+        <h1>Histórico de pedidos</h1>
+        <p class="intro-copy">Pedidos concluídos ficam guardados aqui para consulta, sem voltar ao quadro ativo.</p>
+      </div>
+      <span class="history-total">${orders.length} ${orders.length === 1 ? 'pedido salvo' : 'pedidos salvos'}</span>
+    </section>
+
+    <section class="history-panel panel">
+      ${orders.length ? `
+        <div class="history-list">
+          ${orders.map((order) => `
+            <article class="history-order">
+              <div class="history-order-mark">✓</div>
+              <div class="history-order-main">
+                <div class="history-order-heading">
+                  <strong>${esc(order.id)}</strong>
+                  <span>${esc(order.status)}</span>
+                </div>
+                <p>${esc(order.customer || 'Cliente')} · ${order.fulfillment === 'delivery' ? 'Delivery' : 'Retirada'} · ${money(order.total)}</p>
+              </div>
+              <time>${formatOrderDate(order.updatedAt || order.createdAt)}</time>
+              <button class="outline-button history-details" data-action="open-order" data-id="${order.id}">Ver detalhes</button>
+            </article>
+          `).join('')}
+        </div>
+      ` : empty('Nenhum pedido finalizado', 'Quando um pedido for entregue ou cancelado, ele aparecerá aqui.')}
+    </section>
+  `;
+}
+
+function formatOrderDate(value) {
+  if (!value) return 'Sem data';
+  return new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
 function orderCard(order) {
   const late = order.status !== 'Entregue' && Number(order.readyAt || 0) < Date.now();
   return `
@@ -1333,7 +1419,7 @@ function orderDetails(order) {
       <p>${esc(order.customer || 'Cliente')} · ${order.fulfillment === 'delivery' ? esc(order.address || 'Endereco nao informado') : 'Retirada no local'}</p>
     </div>
     <div class="detail-items">
-      ${(order.items || []).map((item) => `<div><strong>${item.quantity}x ${esc(item.name)}</strong><small>${esc(item.description || '')}</small></div>`).join('') || '<p>Itens registrados no pedido.</p>'}
+      ${(order.items || []).map((item) => `<div class="detail-item"><span class="detail-item-photo">${item.photo ? `<img src="${item.photo}" alt="">` : '<span class="food-placeholder"></span>'}</span><span><strong>${item.quantity}x ${esc(item.name)}</strong><small>${esc(item.description || '')}</small></span></div>`).join('') || '<p>Itens registrados no pedido.</p>'}
     </div>
     <div class="detail-chat">
       <strong>Conversa com este cliente</strong>
@@ -1439,29 +1525,93 @@ function categoryView() {
   `;
 }
 
+function conversationKey(message) {
+  return message.orderId ? `order:${message.orderId}` : 'store';
+}
+
+function conversationTitle(key, messages) {
+  if (key === 'store') return 'Conversa geral da loja';
+  const order = state.orders.find((item) => String(item.id) === String(key.replace('order:', '')));
+  return order ? `${order.customer || 'Cliente'} · Pedido ${order.id}` : `Pedido ${key.replace('order:', '')}`;
+}
+
+function chatConversations() {
+  const groups = new Map();
+  state.messages
+    .filter((message) => message.scope === 'order' || message.scope === 'store')
+    .forEach((message) => {
+      const key = conversationKey(message);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(message);
+    });
+
+  return [...groups.entries()]
+    .map(([key, messages]) => ({
+      key,
+      messages,
+      pinned: messages.some((message) => message.fixada),
+      unread: messages.some((message) => message.from !== 'merchant' && !message.vistaPeloComerciante),
+      latest: messages[messages.length - 1]
+    }))
+    .sort((first, second) => Number(second.pinned) - Number(first.pinned));
+}
+
 function chatView() {
   markMessagesAsRead('merchant');
-  const messages = state.messages.filter((msg) => msg.scope === 'order' || msg.scope === 'store');
+  const conversations = chatConversations();
+  const selectedKey = conversations.some((conversation) => conversation.key === state.chatConversation) ? state.chatConversation : null;
+  const selected = conversations.find((conversation) => conversation.key === selectedKey);
+
   return `
     <section class="page-intro">
       <div>
         <p class="eyebrow">CONVERSE COM QUEM PEDIU</p>
         <h1>Conversas</h1>
-        <p class="intro-copy">Cada conversa fica ligada ao pedido do cliente.</p>
+        <p class="intro-copy">Escolha uma conversa para ver as mensagens e responder ao cliente.</p>
       </div>
     </section>
 
-    <section class="panel chat-panel">
-      <div class="chat-messages">
-        ${messages.map((msg) => `<div class="message ${msg.from === 'merchant' ? 'mine' : ''}"><small>${msg.scope === 'order' ? `Pedido ${esc(msg.orderId || '')}` : 'Mensagem da loja'}</small>${esc(msg.text)}<small>${esc(msg.time)}</small></div>`).join('') || empty('Nenhuma conversa ainda', 'As mensagens dos clientes aparecerão aqui.')}
-      </div>
-      <form class="chat-compose" data-store-chat>
-        <input name="message" required placeholder="Responder aos clientes">
-        <button class="primary-button">Enviar mensagem</button>
-      </form>
+    <section class="chat-layout">
+      <aside class="conversation-list panel">
+        <div class="conversation-list-heading"><strong>Suas conversas</strong><span>${conversations.length}</span></div>
+        ${conversations.length ? conversations.map((conversation) => `
+          <div class="conversation-row ${conversation.key === selectedKey ? 'selected' : ''} ${conversation.pinned ? 'pinned' : ''}">
+            <button class="conversation-select" data-chat-conversation="${esc(conversation.key)}">
+              <span class="conversation-avatar">${conversation.key === 'store' ? 'L' : 'P'}</span>
+              <span class="conversation-summary"><strong>${esc(conversationTitle(conversation.key, conversation.messages))}</strong><small>${esc(conversation.latest?.text || '')}</small></span>
+              ${conversation.unread ? '<b class="conversation-unread"></b>' : ''}
+            </button>
+            <button class="conversation-pin" data-chat-pin-conversation="${esc(conversation.key)}" aria-label="${conversation.pinned ? 'Desafixar conversa' : 'Fixar conversa'}">${conversation.pinned ? '★' : '☆'}</button>
+          </div>
+        `).join('') : empty('Nenhuma conversa ainda', 'As mensagens dos clientes aparecerão aqui.')}
+      </aside>
+
+      <section class="chat-thread panel ${selected ? 'has-conversation' : ''}">
+        ${selected ? `
+          <header class="chat-thread-heading">
+            <div><span class="eyebrow">CONVERSA</span><h2>${esc(conversationTitle(selected.key, selected.messages))}</h2></div>
+            <button class="conversation-pin thread-pin" data-chat-pin-conversation="${esc(selected.key)}" aria-label="${selected.pinned ? 'Desafixar conversa' : 'Fixar conversa'}">${selected.pinned ? '★ Fixada' : '☆ Fixar'}</button>
+          </header>
+          <div class="chat-messages">
+            ${selected.messages.map((message) => `
+              <article class="message ${message.from === 'merchant' ? 'mine' : ''} ${message.fixada ? 'pinned-message' : ''}">
+                <div class="message-text">${esc(message.text)}</div>
+                <small>${esc(message.time)}</small>
+                <div class="message-actions">
+                  <button data-chat-pin-message="${esc(message.id)}">${message.fixada ? 'Desafixar' : 'Fixar'}</button>
+                  <button data-chat-delete-message="${esc(message.id)}">Excluir</button>
+                </div>
+              </article>
+            `).join('')}
+          </div>
+          <form class="chat-compose" data-store-chat data-chat-order="${selected.key.startsWith('order:') ? esc(selected.key.replace('order:', '')) : ''}">
+            <input name="message" required placeholder="Responder ao cliente">
+            <button class="primary-button">Enviar mensagem</button>
+          </form>
+        ` : empty('Selecione uma conversa', 'Clique em uma conversa ao lado para visualizar as mensagens.')}
+      </section>
     </section>
   `;
-
 }
 
 function printersView() {
@@ -1860,6 +2010,51 @@ function bindMerchant() {
     };
   });
 
+  document.querySelectorAll('[data-chat-conversation]').forEach((button) => {
+    button.onclick = () => {
+      state.chatConversation = button.dataset.chatConversation;
+      save();
+      render();
+    };
+  });
+
+  document.querySelectorAll('[data-chat-pin-conversation]').forEach((button) => {
+    button.onclick = async () => {
+      const key = button.dataset.chatPinConversation;
+      const messages = state.messages.filter((message) => conversationKey(message) === key);
+      const pinned = !messages.some((message) => message.fixada);
+      messages.forEach((message) => { message.fixada = pinned; });
+      save();
+      render();
+      await Promise.all(messages.map((message) => updateMessageInSupabase(message, { fixada: pinned })));
+    };
+  });
+
+  document.querySelectorAll('[data-chat-pin-message]').forEach((button) => {
+    button.onclick = async () => {
+      const message = state.messages.find((item) => String(item.id) === String(button.dataset.chatPinMessage));
+      if (!message) return;
+      const pinned = !message.fixada;
+      message.fixada = pinned;
+      save();
+      render();
+      await updateMessageInSupabase(message, { fixada: pinned });
+    };
+  });
+
+  document.querySelectorAll('[data-chat-delete-message]').forEach((button) => {
+    button.onclick = async () => {
+      const message = state.messages.find((item) => String(item.id) === String(button.dataset.chatDeleteMessage));
+      if (!message || !window.confirm('Excluir esta mensagem permanentemente?')) return;
+      const deleted = await deleteMessageFromSupabase(message);
+      if (!deleted) return;
+      state.messages = state.messages.filter((item) => item !== message);
+      save();
+      render();
+      notify('Mensagem excluída.');
+    };
+  });
+
   document.querySelector('[data-store-chat]')?.addEventListener('submit', (event) => {
     event.preventDefault();
     const text = String(new FormData(event.currentTarget).get('message') || '').trim();
@@ -1869,12 +2064,13 @@ function bindMerchant() {
       from: 'merchant',
       text,
       time: nowTime(),
-      scope: 'store'
+      scope: event.currentTarget.dataset.chatOrder ? 'order' : 'store',
+      orderId: event.currentTarget.dataset.chatOrder || null
     });
     save();
-    void persistMessageToSupabase(state.messages[state.messages.length - 1]);
+    void persistMessageToSupabase(state.messages[state.messages.length - 1], event.currentTarget.dataset.chatOrder || null);
     render();
-    notify('Mensagem enviada para a loja');
+    notify('Mensagem enviada.');
   });
 
   document.querySelectorAll('[data-view]').forEach((button) => {
@@ -1951,13 +2147,8 @@ function handleAction(event) {
   if (action === 'toggle-open') {
     const nextOpen = !state.shop.isOpen;
     if (!nextOpen) {
-      const finishedOrders = state.orders.filter((order) => ['Entregue', 'Finalizado', 'Pronto', 'Saiu para entrega'].includes(order.status));
-      const message = finishedOrders.length ? 'Fechar a loja e apagar os pedidos já finalizados?' : 'Deseja fechar a loja?';
-      const shouldProceed = window.confirm(message);
+      const shouldProceed = window.confirm('Deseja fechar a loja? Os pedidos finalizados continuarão no histórico.');
       if (!shouldProceed) return;
-      if (finishedOrders.length) {
-        state.orders = state.orders.filter((order) => !['Entregue', 'Finalizado', 'Pronto', 'Saiu para entrega'].includes(order.status));
-      }
     }
     state.shop.isOpen = nextOpen;
     return renderSaved();
@@ -2456,7 +2647,8 @@ function checkoutDialog() {
       description: item.description,
       quantity: item.quantity,
       notes: item.notes,
-      price: item.price
+      price: item.price,
+      photo: item.photo || ''
     }));
 
     localStorage.setItem(clientKey, JSON.stringify({ name: customer, phone, address }));
