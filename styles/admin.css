@@ -309,6 +309,23 @@
   font-size: 1rem; /* Dá presença ao símbolo. */
 }
 
+.category-row .category-edit-button {
+  border-color: rgba(8, 127, 196, 0.24); /* Usa uma borda azul para edição. */
+  background: var(--blue-soft); /* Diferencia editar de remover. */
+  color: var(--blue); /* Aplica a cor da ação de edição. */
+}
+
+.category-row .category-edit-button::before {
+  content: none; /* Remove o símbolo de exclusão do botão Editar. */
+  display: none; /* Garante que nenhum espaço do símbolo permaneça. */
+}
+
+.category-row .category-edit-button:hover {
+  border-color: rgba(8, 127, 196, 0.5); /* Reforça a borda no hover. */
+  background: #dff4ff; /* Destaca o botão durante a interação. */
+  color: var(--blue-deep); /* Aumenta o contraste no hover. */
+}
+
 .category-row button:hover {
   border-color: var(--danger); /* Reforça a ação destrutiva no hover. */
   background: #fff0f0; /* Aumenta o alerta visual. */
