@@ -88,7 +88,28 @@ async function syncServerState() {
     const serverState = await response.json();
     if (!serverState || !Object.keys(serverState).length) return;
 
-    const merged = { ...state, ...serverState };
+    // A aba atual e os filtros pertencem à navegação local, não ao estado compartilhado.
+    // Preservá-los evita que o refresh do servidor reabra a aba anterior durante um clique.
+    const localView = state.view;
+    const localCustomerView = state.customerView;
+    const localOrderQuery = state.orderQuery;
+    const localOrderFilter = state.orderFilter;
+    const localShopSettingsTab = state.shopSettingsTab;
+    const localPrinterTab = state.printerConfig?.tab;
+    const merged = {
+      ...state,
+      ...serverState,
+      view: localView,
+      customerView: localCustomerView,
+      orderQuery: localOrderQuery,
+      orderFilter: localOrderFilter,
+      shopSettingsTab: localShopSettingsTab,
+      printerConfig: {
+        ...state.printerConfig,
+        ...(serverState.printerConfig || {}),
+        tab: localPrinterTab || state.printerConfig?.tab
+      }
+    };
     if (merchantLogged()) {
       if (!serverState.merchant) merged.merchant = state.merchant;
       if (!serverState.shop) merged.shop = state.shop;
