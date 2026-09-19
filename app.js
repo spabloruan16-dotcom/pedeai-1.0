@@ -82,6 +82,10 @@ function readState() {
 }
 
 async function syncServerState() {
+  // Para comerciantes autenticados, o Supabase e a fonte oficial dos dados.
+  // O estado local do servidor pode estar vazio ou ser efemero depois de um deploy.
+  if (currentUser) return false;
+
   try {
     const response = await fetch('/api/state', { cache: 'no-store' });
     if (!response.ok) return;
@@ -581,7 +585,6 @@ async function loadMerchantFromSupabase() {
 
   if (merchantError) {
     console.error('Erro ao carregar comerciante:', merchantError);
-    clearMerchantState();
     return;
   }
 
@@ -601,12 +604,6 @@ async function loadMerchantFromSupabase() {
 
   if (shopError) {
     console.error('Erro ao carregar loja:', shopError);
-    state.shop = null;
-    state.categories = [];
-    state.products = [];
-    state.orders = [];
-    state.ratings = [];
-    state.messages = [];
     return;
   }
 
@@ -627,11 +624,6 @@ async function loadMerchantFromSupabase() {
     await loadOrdersAndMessagesFromSupabase();
   } else {
     state.shop = null;
-    state.categories = [];
-    state.products = [];
-    state.orders = [];
-    state.ratings = [];
-    state.messages = [];
   }
 }
 
@@ -1007,8 +999,6 @@ async function loginMerchant(event) {
 
     currentUser = authData.user;
     currentSession = authData.session;
-
-    clearMerchantState();
 
     await loadMerchantFromSupabase();
 
