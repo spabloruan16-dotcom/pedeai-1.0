@@ -16,6 +16,10 @@ ALTER TABLE public.mensagens
   ADD COLUMN IF NOT EXISTS vista_pelo_cliente BOOLEAN NOT NULL DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS fixada BOOLEAN NOT NULL DEFAULT FALSE;
 
+ALTER TABLE public.produtos
+  ADD COLUMN IF NOT EXISTS destaque BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS disponibilidade JSONB NOT NULL DEFAULT '{"days":[0,1,2,3,4,5,6],"start":"","end":""}'::jsonb;
+
 DROP POLICY IF EXISTS "pedidos_insert_public" ON public.pedidos;
 CREATE POLICY "pedidos_insert_public"
 ON public.pedidos

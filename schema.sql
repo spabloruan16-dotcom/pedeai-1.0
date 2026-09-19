@@ -94,6 +94,8 @@ CREATE TABLE IF NOT EXISTS public.produtos (
     foto_url TEXT,
     preco NUMERIC(10,2) NOT NULL,
     disponivel BOOLEAN NOT NULL DEFAULT TRUE,
+    destaque BOOLEAN NOT NULL DEFAULT FALSE,
+    disponibilidade JSONB NOT NULL DEFAULT '{"days":[0,1,2,3,4,5,6],"start":"","end":""}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     CONSTRAINT produtos_preco_check CHECK (preco >= 0)

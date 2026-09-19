@@ -162,7 +162,7 @@
 
 .manage-row {
   display: grid; /* Organiza foto, dados, preço, disponibilidade e ação. */
-  grid-template-columns: 58px minmax(0, 1fr) auto 42px auto; /* Reserva uma coluna estável para cada informação. */
+  grid-template-columns: 58px minmax(0, 1fr) auto auto 42px 34px auto; /* Reserva uma coluna estável para cada informação. */
   align-items: center; /* Centraliza o conteúdo da linha. */
   gap: 14px; /* Cria espaço entre as colunas. */
   padding: 13px 0; /* Separa visualmente cada produto. */
@@ -237,6 +237,51 @@
   font-size: 0.86rem; /* Mantém o preço proporcional à linha. */
   white-space: nowrap; /* Evita quebra do preço. */
 }
+.product-availability-label {
+  color: #22734a; /* Indica que o produto pode ser pedido. */
+  font-size: 0.68rem; /* Mantém o status discreto. */
+  font-weight: 800; /* Destaca o estado. */
+  white-space: nowrap; /* Evita quebrar o status. */
+}
+.product-unavailable .product-availability-label {
+  color: var(--danger); /* Indica produto fechado ou fora do horário. */
+}
+.featured-toggle {
+  display: grid; /* Permite centralizar a estrela. */
+  place-items: center; /* Centraliza a estrela no controle. */
+  width: 34px; /* Define a área de clique. */
+  height: 34px; /* Mantém o controle quadrado. */
+  border: 1px solid var(--line); /* Define o contorno do seletor. */
+  border-radius: 9px; /* Arredonda o seletor. */
+  background: #fff; /* Mantém o controle leve. */
+  color: #aab4b9; /* Colore a estrela desligada. */
+  cursor: pointer; /* Indica interação. */
+}
+.featured-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.featured-toggle:has(input:checked) { border-color: #e2b42b; background: #fff8da; color: #c58a00; }
+.featured-toggle:hover { border-color: #e2b42b; color: #c58a00; transform: translateY(-1px); }
+.product-settings-block {
+  display: grid; /* Organiza as opções de disponibilidade. */
+  gap: 8px; /* Separa cada grupo de configuração. */
+  padding: 13px; /* Cria espaço interno no bloco. */
+  border: 1px solid var(--line); /* Enquadra as opções. */
+  border-radius: 12px; /* Arredonda o bloco. */
+  background: #f9fbfb; /* Diferencia as configurações do formulário. */
+}
+.product-settings-block > strong { font-size: 0.82rem; }
+.product-settings-block > small { color: var(--muted); font-size: 0.72rem; }
+.availability-days {
+  display: flex; /* Mantém os dias em uma linha. */
+  flex-wrap: wrap; /* Permite quebra em telas pequenas. */
+  gap: 6px; /* Separa os dias. */
+}
+.availability-days label { cursor: pointer; }
+.availability-days input { position: absolute; opacity: 0; pointer-events: none; }
+.availability-days span { display: inline-grid; place-items: center; min-width: 38px; min-height: 30px; border: 1px solid var(--line); border-radius: 8px; background: #fff; color: var(--muted); font-size: 0.7rem; font-weight: 800; }
+.availability-days input:checked + span { border-color: var(--blue); background: var(--blue-soft); color: var(--blue-deep); }
+.availability-hours { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.availability-hours label { display: grid; gap: 4px; color: var(--muted); font-size: 0.7rem; font-weight: 700; }
+.availability-hours input { width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 8px; background: #fff; }
 
 .manage-row .dots,
 .category-row button {

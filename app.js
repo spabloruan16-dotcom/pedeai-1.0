@@ -22,6 +22,34 @@ function defaultShopSchedule() {
   };
 }
 
+function defaultProductAvailability() {
+  return { days: [0, 1, 2, 3, 4, 5, 6], start: '', end: '' };
+}
+
+function productAvailability(product) {
+  const availability = { ...defaultProductAvailability(), ...(product?.availability || {}) };
+  return { ...availability, days: Array.isArray(availability.days) ? availability.days.map(Number) : defaultProductAvailability().days };
+}
+
+function isProductAvailableNow(product) {
+  if (!product || product.available === false) return false;
+  const availability = productAvailability(product);
+  const today = new Date();
+  if (!availability.days.includes(today.getDay())) return false;
+  if (!availability.start || !availability.end) return true;
+  const current = today.toTimeString().slice(0, 5);
+  return availability.start <= availability.end
+    ? current >= availability.start && current <= availability.end
+    : current >= availability.start || current <= availability.end;
+}
+
+function productOrderCount(product) {
+  return state.orders.reduce((total, order) => total + (order.items || []).reduce((itemsTotal, item) => {
+    const sameProduct = String(item.id || '') === String(product.id || '') || item.name === product.name;
+    return itemsTotal + (sameProduct ? Number(item.quantity || 0) : 0);
+  }, 0), 0);
+}
+
 const blank = {
   view: 'dashboard',
   customerView: 'menu',
@@ -207,7 +235,9 @@ async function persistStateToSupabase() {
         descricao: product.description || '',
         foto_url: product.photo || null,
         preco: Number(product.price || 0),
-        disponivel: product.available !== false
+        disponivel: product.available !== false,
+        destaque: Boolean(product.featured),
+        disponibilidade: productAvailability(product)
       }));
 
     if (productRows.length) {
@@ -681,7 +711,9 @@ async function loadCatalogFromSupabase() {
     description: product.descricao || '',
     price: Number(product.preco || 0),
     available: product.disponivel,
-    photo: product.foto_url || ''
+    photo: product.foto_url || '',
+    featured: Boolean(product.destaque),
+    availability: product.disponibilidade || defaultProductAvailability()
   }));
 }
 
@@ -1474,7 +1506,7 @@ function menuView() {
       </div>
 
       ${state.products.length ? state.products.map((product) => `
-        <div class="manage-row">
+        <div class="manage-row ${isProductAvailableNow(product) ? '' : 'product-unavailable'}">
           <span class="manage-emoji">${product.photo ? `<img src="${product.photo}" alt="">` : '<span class="food-placeholder"></span>'}</span>
           <div>
             <strong>${esc(product.name)}</strong>
@@ -1485,6 +1517,8 @@ function menuView() {
             <input type="checkbox" data-product="${product.id}" ${product.available ? 'checked' : ''}>
             <span></span>
           </label>
+          <span class="product-availability-label">${isProductAvailableNow(product) ? 'Disponível agora' : 'Indisponível'}</span>
+          <label class="featured-toggle" title="Mostrar na área de destaques"><input type="checkbox" data-featured-product="${product.id}" ${product.featured ? 'checked' : ''}><span>★</span></label>
           <button class="dots" data-action="edit-product" data-id="${product.id}">Editar</button>
         </div>
       `).join('') : empty('Seu cardapio esta vazio', 'Crie uma categoria e adicione seu primeiro produto.')}
@@ -1790,8 +1824,12 @@ function customerShop() {
     .find((order) => cached.name && order.customer === cached.name);
 
   const customerChatBadge = unreadMessagesCount('customer') > 0 ? `<span class="chat-badge">${unreadMessagesCount('customer')}</span>` : '';
-  const featuredProducts = state.products.filter((product) => product.available).slice(0, 3);
-  const repeatProducts = state.products.filter((product) => product.available).slice(0, 2);
+  const featuredProducts = state.products.filter((product) => product.featured);
+  const repeatProducts = state.products
+    .slice()
+    .sort((first, second) => productOrderCount(second) - productOrderCount(first))
+    .filter((product) => productOrderCount(product) > 0)
+    .slice(0, 3);
   app.innerHTML = `
     <div class="customer-app">
       <header class="customer-header">
@@ -1831,16 +1869,16 @@ function customerShop() {
         </nav>
 
         <main class="customer-menu">
-          ${repeatProducts.length ? `<section class="customer-section repeat-section"><div class="category-heading"><h2>Peça de novo</h2><span>Favoritos da loja</span></div><div class="customer-products repeat-products">${repeatProducts.map(customerProduct).join('')}</div></section>` : ''}
-          ${featuredProducts.length ? `<section class="featured-section"><div class="category-heading"><h2>Destaques</h2><span>Mais pedidos</span></div><div class="customer-products featured-products">${featuredProducts.map(customerProduct).join('')}</div></section>` : ''}
+          ${repeatProducts.length ? `<section class="customer-section repeat-section"><div class="category-heading"><h2>Mais pedidos</h2><span>Os mais pedidos pelos clientes</span></div><div class="customer-products repeat-products">${repeatProducts.map(customerProduct).join('')}</div></section>` : ''}
+          ${featuredProducts.length ? `<section class="featured-section"><div class="category-heading"><h2>Destaques</h2><span>Escolhidos pela loja</span></div><div class="customer-products featured-products">${featuredProducts.map(customerProduct).join('')}</div></section>` : ''}
           ${state.categories.length ? state.categories.map((category) => `
             <section id="${encodeURIComponent(category)}">
               <div class="category-heading">
                 <h2>${esc(category)}</h2>
-                <span>${state.products.filter((item) => item.category === category && item.available).length} opcoes</span>
+                <span>${state.products.filter((item) => item.category === category && isProductAvailableNow(item)).length} opcoes disponiveis</span>
               </div>
               <div class="customer-products">
-                ${state.products.filter((item) => item.category === category && item.available).map(customerProduct).join('')}
+                ${state.products.filter((item) => item.category === category).map(customerProduct).join('')}
               </div>
             </section>
           `).join('') : '<div class="customer-empty"><strong>O cardapio esta sendo preparado.</strong><small>Volte em breve.</small></div>'}
@@ -1970,15 +2008,16 @@ function statusLabel(status) {
 }
 
 function customerProduct(product) {
+  const availableNow = isProductAvailableNow(product);
   return `
-    <article class="customer-product">
+    <article class="customer-product ${availableNow ? '' : 'is-unavailable'}">
       <div class="food-image">${product.photo ? `<img src="${product.photo}" alt="">` : '<span class="food-placeholder"></span>'}</div>
       <div class="customer-product-info">
         <h3>${esc(product.name)}</h3>
         <p>${esc(product.description)}</p>
         <strong>${money(product.price)}</strong>
       </div>
-      <button class="add-food" data-action="add-cart" data-id="${product.id}">Adicionar</button>
+      ${availableNow ? `<button class="add-food" data-action="add-cart" data-id="${product.id}">Adicionar</button>` : '<div class="unavailable-label">Indisponível no momento</div>'}
     </article>
   `;
 }
@@ -2113,6 +2152,16 @@ function bindMerchant() {
       const item = state.products.find((product) => String(product.id) === String(input.dataset.product));
       if (item) {
         item.available = input.checked;
+        renderSaved();
+      }
+    };
+  });
+
+  document.querySelectorAll('[data-featured-product]').forEach((input) => {
+    input.onchange = () => {
+      const item = state.products.find((product) => String(product.id) === String(input.dataset.featuredProduct));
+      if (item) {
+        item.featured = input.checked;
         renderSaved();
       }
     };
@@ -2542,6 +2591,8 @@ function categoryDialog(existingName = '') {
 
 function productDialog(id) {
   const product = state.products.find((item) => String(item.id) === String(id));
+  const availability = productAvailability(product);
+  const availabilityDays = [['0', 'Dom'], ['1', 'Seg'], ['2', 'Ter'], ['3', 'Qua'], ['4', 'Qui'], ['5', 'Sex'], ['6', 'Sáb']];
   showDialog(`
     <div class="dialog-head">
       <span class="category-icon">Produto</span>
@@ -2554,6 +2605,14 @@ function productDialog(id) {
       <label>Categoria<select name="category" required>${state.categories.map((category) => `<option ${product?.category === category ? 'selected' : ''}>${esc(category)}</option>`).join('')}</select></label>
       <label>Descricao<textarea name="description" required placeholder="Ingredientes, tamanho e diferenciais.">${esc(product?.description || '')}</textarea></label>
       <label>Preco<input name="price" type="number" min="0.01" step="0.01" required value="${product?.price || ''}" placeholder="0,00"></label>
+      <div class="product-settings-block">
+        <strong>Disponibilidade</strong>
+        <label class="choice-row"><input type="checkbox" name="available" ${product?.available !== false ? 'checked' : ''}><span>Disponível para pedidos</span></label>
+        <label class="choice-row"><input type="checkbox" name="featured" ${product?.featured ? 'checked' : ''}><span>Mostrar na área de Destaques</span></label>
+        <small>Escolha os dias e horários em que este produto pode ser pedido.</small>
+        <div class="availability-days">${availabilityDays.map(([value, label]) => `<label><input type="checkbox" name="availability-days" value="${value}" ${availability.days.includes(Number(value)) ? 'checked' : ''}><span>${label}</span></label>`).join('')}</div>
+        <div class="availability-hours"><label>Das<input type="time" name="availability-start" value="${esc(availability.start)}"></label><label>Até<input type="time" name="availability-end" value="${esc(availability.end)}"></label></div>
+      </div>
       <div class="dialog-actions">
         ${product ? '<button class="danger-button" type="button" data-dialog-delete-product>Excluir produto</button>' : ''}
         <button class="primary-button">Salvar produto</button>
@@ -2590,7 +2649,13 @@ function productDialog(id) {
         description: String(data.get('description') || '').trim(),
         price: Number(data.get('price') || 0),
         photo: photo || product?.photo || null,
-        available: product?.available ?? true
+        available: data.get('available') === 'on',
+        featured: data.get('featured') === 'on',
+        availability: {
+          days: data.getAll('availability-days').map(Number),
+          start: String(data.get('availability-start') || ''),
+          end: String(data.get('availability-end') || '')
+        }
       };
 
       if (product) Object.assign(product, next);

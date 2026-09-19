@@ -215,6 +215,14 @@
 
 .customer-product:hover { transform: translateY(-5px); border-color: rgba(244, 81, 44, 0.28); box-shadow: 0 16px 28px rgba(25, 29, 36, 0.12); }
 
+.customer-product.is-unavailable {
+  border-color: #eadfe0; /* Indica que o produto não pode ser pedido agora. */
+  background: #fbfafa; /* Suaviza visualmente o cartão indisponível. */
+  filter: saturate(0.72); /* Reduz a saturação sem esconder o produto. */
+}
+
+.customer-product.is-unavailable .food-image img { opacity: 0.62; /* Reduz a ênfase da imagem indisponível. */ }
+
 .food-image {
   height: 140px;
   background: linear-gradient(135deg, #f5eee9, #efe4dd);
@@ -247,6 +255,19 @@
 }
 
 .add-food:hover { background: var(--coral-strong); transform: translateY(-1px); box-shadow: 0 8px 16px rgba(244, 81, 44, 0.22); }
+
+.unavailable-label {
+  width: calc(100% - 28px); /* Mantém o aviso alinhado ao botão padrão. */
+  margin: 0 14px 14px; /* Cria espaço ao redor do aviso. */
+  padding: 10px 12px; /* Cria área de leitura confortável. */
+  border: 1px solid rgba(217, 93, 93, 0.2); /* Sinaliza indisponibilidade. */
+  border-radius: 10px; /* Arredonda o aviso. */
+  background: #fff1f1; /* Usa um fundo de alerta suave. */
+  color: var(--danger); /* Mostra que não é possível adicionar agora. */
+  font-size: 0.75rem; /* Mantém o aviso compacto. */
+  font-weight: 800; /* Dá visibilidade ao status. */
+  text-align: center; /* Centraliza o texto do aviso. */
+}
 
 .floating-cart {
   position: fixed;
