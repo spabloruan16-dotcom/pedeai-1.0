@@ -57,3 +57,5 @@ Para aprovar uma solicitação, o responsável deve conferir a linha no Supabase
 O Supabase Auth pode enviar automaticamente o e-mail de confirmação configurado no projeto. Para enviar um e-mail próprio quando o status mudar para `approved`, use uma Edge Function ou serviço SMTP disparado por webhook do Supabase; a chave administrativa não deve ser colocada no frontend.
 
 Se aparecer `email rate limit exceeded` ao criar uma conta, o limite de envio do e-mail de confirmação do Supabase foi atingido. Aguarde o período de bloqueio e evite clicar várias vezes no cadastro. Para produção, configure um SMTP próprio em **Supabase > Authentication > SMTP Settings**, pois o SMTP padrão possui limite baixo.
+
+Se aparecer `Error sending confirmation email`, o provedor de e-mail do Supabase está ausente ou configurado incorretamente. Confira **Authentication > SMTP Settings**, valide host, porta, usuário, senha e remetente, e use **Send test email**. Durante testes, também é possível desativar **Confirm email** em **Authentication > Providers > Email**, mas em produção é recomendado manter a confirmação ativa com SMTP próprio.

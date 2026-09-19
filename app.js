@@ -926,9 +926,12 @@ async function registerMerchant(event) {
       console.error(authError);
       const rateLimited = authError.code === 'over_email_send_rate_limit'
         || /email rate limit exceeded/i.test(authError.message || '');
+      const emailDeliveryError = /error sending confirmation email|error sending email|smtp/i.test(authError.message || '');
       notify(rateLimited
-        ? 'O limite de e-mails do Supabase foi atingido. Aguarde alguns minutos antes de tentar novamente ou configure um SMTP próprio no Supabase.'
-        : authError.message || 'Erro ao criar a conta.');
+        ? 'O limite de e-mails do Supabase foi atingido. Aguarde alguns minutos antes de tentar novamente ou configure um SMTP próprio.'
+        : emailDeliveryError
+          ? 'O Supabase não conseguiu enviar o e-mail de confirmação. Configure um SMTP válido em Authentication > SMTP Settings ou desative a confirmação de e-mail durante os testes.'
+          : authError.message || 'Erro ao criar a conta.');
       return;
     }
 
@@ -968,9 +971,12 @@ async function registerMerchant(event) {
     console.error(error);
     const rateLimited = error?.code === 'over_email_send_rate_limit'
       || /email rate limit exceeded/i.test(error?.message || '');
+    const emailDeliveryError = /error sending confirmation email|error sending email|smtp/i.test(error?.message || '');
     notify(rateLimited
       ? 'O limite de e-mails do Supabase foi atingido. Aguarde alguns minutos e tente novamente.'
-      : 'Erro inesperado ao criar a conta.');
+      : emailDeliveryError
+        ? 'O Supabase não conseguiu enviar o e-mail de confirmação. Verifique o SMTP em Authentication > SMTP Settings.'
+        : 'Erro inesperado ao criar a conta.');
   } finally {
     registrationInProgress = false;
     if (submitButton) {
