@@ -87,6 +87,79 @@
 
 .filter-pills button:hover:not(.selected) { color: var(--ink); background: rgba(255, 255, 255, 0.7); }
 
+.menu-toolbar {
+  display: flex; /* Alinha categorias e contador na mesma faixa. */
+  align-items: center; /* Centraliza os elementos verticalmente. */
+  justify-content: space-between; /* Separa navegação e total de produtos. */
+  gap: 18px; /* Mantém respiro entre os grupos. */
+  margin-bottom: 20px; /* Afasta a barra da lista de produtos. */
+}
+
+.category-tabs {
+  display: flex; /* Mantém as categorias lado a lado. */
+  align-items: center; /* Centraliza os botões da barra. */
+  gap: 6px; /* Cria separação entre as opções. */
+  max-width: 100%; /* Impede que a barra ultrapasse o painel. */
+  overflow-x: auto; /* Permite navegar pelas categorias em telas menores. */
+  padding: 4px; /* Cria área para o destaque do botão ativo. */
+  border: 1px solid var(--line); /* Define o contorno da navegação. */
+  border-radius: 14px; /* Arredonda o conjunto de categorias. */
+  background: #f7f9f9; /* Diferencia a barra do painel branco. */
+  scrollbar-width: none; /* Esconde a barra de rolagem no Firefox. */
+}
+
+.category-tabs::-webkit-scrollbar {
+  display: none; /* Esconde a barra de rolagem no WebKit. */
+}
+
+.category-tabs button {
+  flex: 0 0 auto; /* Impede os botões de encolherem. */
+  min-height: 38px; /* Mantém uma área de toque confortável. */
+  border: 0; /* Remove a borda padrão do botão. */
+  border-radius: 10px; /* Arredonda cada opção. */
+  padding: 9px 14px; /* Define o espaço interno. */
+  background: transparent; /* Mantém categorias comuns discretas. */
+  color: var(--muted); /* Usa uma cor secundária para opções. */
+  font-size: 0.78rem; /* Mantém a barra compacta. */
+  font-weight: 700; /* Dá clareza às categorias. */
+  white-space: nowrap; /* Evita quebra no nome da categoria. */
+}
+
+.category-tabs button:hover {
+  background: #fff; /* Destaca a opção sob o cursor. */
+  color: var(--ink); /* Aumenta o contraste da opção. */
+  box-shadow: 0 3px 10px rgba(25, 29, 36, 0.06); /* Cria uma elevação sutil. */
+  transform: translateY(-1px); /* Dá resposta visual ao hover. */
+}
+
+.category-tabs .add-category {
+  border: 1px dashed rgba(244, 81, 44, 0.5); /* Diferencia a ação de criação. */
+  background: var(--coral-soft); /* Usa o tom suave da marca. */
+  color: var(--coral-strong); /* Destaca a ação com a cor da marca. */
+  box-shadow: 0 4px 12px rgba(244, 81, 44, 0.08); /* Dá importância sem pesar. */
+}
+
+.category-tabs .add-category::before {
+  content: '+'; /* Adiciona um sinal visual de criação. */
+  display: inline-grid; /* Permite centralizar o sinal. */
+  place-items: center; /* Centraliza o sinal dentro do círculo. */
+  width: 18px; /* Define a largura do sinal. */
+  height: 18px; /* Define a altura do sinal. */
+  margin-right: 6px; /* Separa o sinal do texto. */
+  border-radius: 50%; /* Cria um pequeno círculo de ação. */
+  background: var(--coral); /* Colore o círculo com a marca. */
+  color: #fff; /* Mantém o sinal contrastante. */
+  font-size: 0.85rem; /* Ajusta o tamanho do sinal. */
+  line-height: 1; /* Evita desalinhamento vertical. */
+}
+
+.category-tabs .add-category:hover {
+  border-style: solid; /* Torna a borda firme no hover. */
+  background: #fff; /* Aumenta o contraste durante a interação. */
+  color: var(--coral-strong); /* Mantém a ação destacada. */
+  box-shadow: 0 8px 18px rgba(244, 81, 44, 0.16); /* Reforça a elevação. */
+}
+
 .order-config-panel {
   display: flex;
   align-items: center;
@@ -358,6 +431,49 @@
 .shop-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 18px; }
 .shop-form-grid label, .shop-time-grid label { display: grid; gap: 7px; color: var(--ink); font-weight: 700; }
 .shop-form-grid input, .shop-form-grid textarea, .shop-time-grid input { width: 100%; border: 1px solid var(--line); border-radius: 9px; padding: 11px 12px; background: #fff; }
+.shop-form-grid input[type="file"] {
+  min-height: 76px; /* Cria uma área de upload confortável. */
+  padding: 13px; /* Dá espaço ao botão nativo e ao nome do arquivo. */
+  border: 1.5px dashed rgba(8, 127, 196, 0.35); /* Indica visualmente uma área de envio. */
+  border-radius: 14px; /* Arredonda o campo de arquivo. */
+  background: linear-gradient(135deg, #f6fbfd, #fff); /* Dá leve profundidade ao campo. */
+  color: var(--muted); /* Suaviza o nome do arquivo. */
+  font-size: 0.76rem; /* Mantém o texto auxiliar discreto. */
+  cursor: pointer; /* Indica que toda a área pode ser acionada. */
+  transition: border-color 180ms var(--ease-soft), background 180ms var(--ease-soft), box-shadow 180ms var(--ease-soft); /* Suaviza os estados do campo. */
+}
+
+.shop-form-grid input[type="file"]::file-selector-button {
+  margin-right: 10px; /* Separa o botão do nome do arquivo. */
+  border: 0; /* Remove o estilo padrão do navegador. */
+  border-radius: 9px; /* Arredonda o botão de seleção. */
+  padding: 10px 13px; /* Cria uma área de clique confortável. */
+  background: linear-gradient(135deg, var(--coral), #ff784e); /* Usa o destaque da marca. */
+  color: #fff; /* Mantém o texto do botão contrastante. */
+  font-family: var(--font-display); /* Combina o botão com o restante da interface. */
+  font-size: 0.76rem; /* Mantém o botão proporcional ao campo. */
+  font-weight: 700; /* Dá clareza à ação. */
+  cursor: pointer; /* Reforça que o botão é acionável. */
+  box-shadow: 0 5px 12px rgba(244, 81, 44, 0.16); /* Dá destaque ao botão. */
+  transition: transform 180ms var(--ease-out), box-shadow 180ms var(--ease-out), background 180ms var(--ease-soft); /* Suaviza o hover. */
+}
+
+.shop-form-grid input[type="file"]:hover {
+  border-color: var(--coral); /* Destaca a área ao passar o mouse. */
+  background: linear-gradient(135deg, #fff4ef, #fff); /* Aproxima o fundo da cor da marca. */
+  box-shadow: 0 8px 20px rgba(244, 81, 44, 0.09); /* Eleva o campo durante a interação. */
+}
+
+.shop-form-grid input[type="file"]:hover::file-selector-button {
+  transform: translateY(-1px); /* Eleva o botão interno no hover. */
+  box-shadow: 0 8px 16px rgba(244, 81, 44, 0.23); /* Reforça a resposta visual. */
+}
+
+.shop-form-grid input[type="file"]:focus-visible {
+  outline: 0; /* Usa o anel customizado abaixo. */
+  border-color: var(--coral); /* Marca o campo focado. */
+  box-shadow: 0 0 0 4px rgba(244, 81, 44, 0.12); /* Mantém o foco acessível. */
+}
 .shop-description-field { grid-column: 1 / -1; }
 .shop-link-panel h2 { margin: 8px 0 5px; font-size: 1.2rem; }
 .shop-link-box { display: flex; align-items: center; gap: 8px; margin: 20px 0 14px; padding: 9px; border: 1px solid var(--line); border-radius: 9px; background: #fafcfc; }

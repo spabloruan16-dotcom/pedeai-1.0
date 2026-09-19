@@ -146,6 +146,8 @@
   .status-bubble-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .page-intro h1 { font-size: 2rem; }
   .board-tools { gap: 8px; }
+  .menu-toolbar { align-items: stretch; flex-direction: column; gap: 10px; }
+  .category-tabs { width: 100%; }
   .search-field { width: 100%; }
   .filter-pills { width: 100%; }
   .filter-pills button { flex: 1; }

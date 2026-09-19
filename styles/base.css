@@ -145,7 +145,8 @@ button:disabled {
 }
 
 #app > * {
-  animation: page-enter 420ms var(--ease-out) both;
+  /* O conteúdo é recriado ao trocar de aba; animar a raiz causava um flash branco. */
+  animation: none;
 }
 
 @keyframes page-enter {
