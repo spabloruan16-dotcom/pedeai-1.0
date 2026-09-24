@@ -1,14 +1,8 @@
 const app = document.querySelector('#app');
 const toast = document.querySelector('#toast');
+const stateKey = 'pedeia-state-v5';
+const sessionKey = 'pedeia-merchant-session';
 const clientKey = 'pedeia-client-profile-v1';
-const stateKey = 'pedeia-state-v1';
-const sessionKey = 'pedeia-session-v1';
-let currentAuthTab = 'register';
-let accessNotice = '';
-let registrationInProgress = false;
-
-let currentUser = null;
-let currentSession = null;
 
 const weekDays = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
 
@@ -24,38 +18,9 @@ function defaultShopSchedule() {
   };
 }
 
-function defaultProductAvailability() {
-  return { days: [0, 1, 2, 3, 4, 5, 6], start: '', end: '' };
-}
-
-function productAvailability(product) {
-  const availability = { ...defaultProductAvailability(), ...(product?.availability || {}) };
-  return { ...availability, days: Array.isArray(availability.days) ? availability.days.map(Number) : defaultProductAvailability().days };
-}
-
-function isProductAvailableNow(product) {
-  if (!product || product.available === false) return false;
-  const availability = productAvailability(product);
-  const today = new Date();
-  if (!availability.days.includes(today.getDay())) return false;
-  if (!availability.start || !availability.end) return true;
-  const current = today.toTimeString().slice(0, 5);
-  return availability.start <= availability.end
-    ? current >= availability.start && current <= availability.end
-    : current >= availability.start || current <= availability.end;
-}
-
-function productOrderCount(product) {
-  return state.orders.reduce((total, order) => total + (order.items || []).reduce((itemsTotal, item) => {
-    const sameProduct = String(item.id || '') === String(product.id || '') || item.name === product.name;
-    return itemsTotal + (sameProduct ? Number(item.quantity || 0) : 0);
-  }, 0), 0);
-}
-
 const blank = {
   view: 'dashboard',
   customerView: 'menu',
-  chatConversation: null,
   merchant: null,
   shop: null,
   categories: [],
@@ -74,7 +39,6 @@ const blank = {
     autoAccept: false
   },
   printerConfig: {
-    tab: 'list',
     mode: 'cabo',
     deviceName: 'Impressora térmica padrão',
     copies: 1,
@@ -113,49 +77,18 @@ function readState() {
 }
 
 async function syncServerState() {
-  // Para comerciantes autenticados, o Supabase e a fonte oficial dos dados.
-  // O estado local do servidor pode estar vazio ou ser efemero depois de um deploy.
-  if (currentUser) return false;
-
   try {
     const response = await fetch('/api/state', { cache: 'no-store' });
     if (!response.ok) return;
     const serverState = await response.json();
     if (!serverState || !Object.keys(serverState).length) return;
 
-    // A aba atual e os filtros pertencem à navegação local, não ao estado compartilhado.
-    // Preservá-los evita que o refresh do servidor reabra a aba anterior durante um clique.
-    const localView = state.view;
-    const localCustomerView = state.customerView;
-    const localOrderQuery = state.orderQuery;
-    const localOrderFilter = state.orderFilter;
-    const localShopSettingsTab = state.shopSettingsTab;
-    const localPrinterTab = state.printerConfig?.tab;
-    const merged = {
-      ...state,
-      ...serverState,
-      view: localView,
-      customerView: localCustomerView,
-      orderQuery: localOrderQuery,
-      orderFilter: localOrderFilter,
-      shopSettingsTab: localShopSettingsTab,
-      printerConfig: {
-        ...state.printerConfig,
-        ...(serverState.printerConfig || {}),
-        tab: localPrinterTab || state.printerConfig?.tab
-      }
-    };
-    if (merchantLogged()) {
-      if (!serverState.merchant) merged.merchant = state.merchant;
-      if (!serverState.shop) merged.shop = state.shop;
-    }
+    const merged = { ...blank, ...serverState };
     if (fingerprint(state) !== fingerprint(merged)) {
       state = merged;
       localStorage.setItem(stateKey, JSON.stringify(merged));
       render();
-      return true;
     }
-    return false;
   } catch {
     // sem acesso ao servidor: continua localmente
   }
@@ -192,171 +125,6 @@ function save() {
   } catch {
     // ignore network failures
   }
-
-  void persistStateToSupabase();
-}
-
-let supabaseSaveInProgress = false;
-
-async function persistStateToSupabase() {
-  if (supabaseSaveInProgress || !currentUser || !state.shop?.id || typeof supabaseClient === 'undefined') return;
-  supabaseSaveInProgress = true;
-
-  try {
-    const categoryRows = state.categories.map((name, index) => ({
-      loja_id: state.shop.id,
-      nome: name,
-      ordem: index
-    }));
-
-    if (categoryRows.length) {
-      const { error } = await supabaseClient
-        .from('categorias')
-        .upsert(categoryRows, { onConflict: 'loja_id,nome' });
-      if (error) console.error('Erro ao salvar categorias no Supabase:', error);
-    }
-
-    const { data: categories, error: categoryError } = await supabaseClient
-      .from('categorias')
-      .select('id, nome')
-      .eq('loja_id', state.shop.id);
-
-    if (categoryError) {
-      console.error('Erro ao carregar categorias do Supabase:', categoryError);
-      return;
-    }
-
-    const categoryIds = new Map(categories.map((category) => [category.nome, category.id]));
-    const productRows = state.products
-      .filter((product) => categoryIds.has(product.category))
-      .map((product) => ({
-        ...(isUuid(product.id) ? { id: product.id } : {}),
-        loja_id: state.shop.id,
-        categoria_id: categoryIds.get(product.category),
-        nome: product.name,
-        descricao: product.description || '',
-        foto_url: product.photo || null,
-        preco: Number(product.price || 0),
-        disponivel: product.available !== false,
-        destaque: Boolean(product.featured),
-        disponibilidade: productAvailability(product)
-      }));
-
-    if (productRows.length) {
-      const { data: savedProducts, error } = await supabaseClient
-        .from('produtos')
-        .upsert(productRows)
-        .select('id, nome');
-      if (error) console.error('Erro ao salvar produtos no Supabase:', error);
-      if (savedProducts) {
-        savedProducts.forEach((savedProduct) => {
-          const localProduct = state.products.find((product) => product.name === savedProduct.nome);
-          if (localProduct) localProduct.id = savedProduct.id;
-        });
-      }
-    }
-  } finally {
-    supabaseSaveInProgress = false;
-  }
-}
-
-function isUuid(value) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || ''));
-}
-
-async function persistOrderToSupabase(order) {
-  if (!state.shop?.id || typeof supabaseClient === 'undefined') return;
-
-  const { data: savedOrder, error } = await supabaseClient
-    .from('pedidos')
-    .insert({
-      loja_id: state.shop.id,
-      cliente_nome: order.customer,
-      cliente_telefone: order.phone,
-      modalidade: order.fulfillment,
-      endereco: order.address || null,
-      pagamento: order.payment,
-      observacoes: order.notes || null,
-      total: order.total,
-      status: order.status
-    })
-    .select('id')
-    .single();
-
-  if (error) {
-    console.error('Erro ao salvar pedido no Supabase:', error);
-    notify('Pedido salvo localmente, mas não foi enviado ao banco.');
-    return;
-  }
-
-  order.supabaseId = savedOrder.id;
-  const items = (order.items || []).map((item) => ({
-    pedido_id: savedOrder.id,
-    produto_id: isUuid(item.id) ? item.id : null,
-    nome_produto: item.name,
-    descricao_produto: item.description || '',
-    quantidade: item.quantity,
-    preco_unitario: item.price,
-    observacao: item.notes || null
-  }));
-
-  if (items.length) {
-    const { error: itemError } = await supabaseClient.from('itens_do_pedido').insert(items);
-    if (itemError) console.error('Erro ao salvar itens do pedido:', itemError);
-  }
-}
-
-async function updateOrderInSupabase(order) {
-  if (!order?.supabaseId || typeof supabaseClient === 'undefined') return;
-  const { error } = await supabaseClient
-    .from('pedidos')
-    .update({
-      status: order.status,
-      updated_at: new Date().toISOString(),
-      pronto_em: ['Pronto', 'Saiu para entrega', 'Entregue'].includes(order.status) ? new Date().toISOString() : null
-    })
-    .eq('id', order.supabaseId);
-  if (error) console.error('Erro ao atualizar pedido no Supabase:', error);
-}
-
-async function persistMessageToSupabase(message, orderId = null) {
-  if (typeof supabaseClient === 'undefined') return;
-  const { data, error } = await supabaseClient.from('mensagens').insert({
-    pedido_id: orderId,
-    remetente_id: currentUser?.id || null,
-    tipo_remetente: message.from,
-    mensagem: message.text,
-    vista_pelo_comerciante: message.vistaPeloComerciante || false,
-    vista_pelo_cliente: message.vistaPeloCliente || false,
-    fixada: Boolean(message.fixada)
-  }).select('id').single();
-  if (error) console.error('Erro ao salvar mensagem no Supabase:', error);
-  if (data?.id) {
-    message.id = data.id;
-    save();
-  }
-}
-
-async function updateMessageInSupabase(message, updates) {
-  if (!isUuid(message?.id) || typeof supabaseClient === 'undefined') return true;
-  const { error } = await supabaseClient.from('mensagens').update(updates).eq('id', message.id);
-  if (error) {
-    console.error('Erro ao atualizar mensagem no Supabase:', error);
-    notify('Não foi possível atualizar esta mensagem no banco.');
-    return false;
-  }
-  return true;
-}
-
-async function deleteMessageFromSupabase(message) {
-  if (!isUuid(message?.id) || typeof supabaseClient === 'undefined') return true;
-  const { error } = await supabaseClient.from('mensagens').delete().eq('id', message.id);
-  if (error) {
-    console.error('Erro ao excluir mensagem no Supabase:', error);
-    notify('A mensagem não foi excluída do banco.');
-    return false;
-  }
-  return true;
 }
 
 function money(value) {
@@ -405,18 +173,7 @@ function publicShop() {
 }
 
 function merchantLogged() {
-  return !!currentUser;
-}
-
-function clearMerchantState() {
-  state.merchant = null;
-  state.shop = null;
-  state.categories = [];
-  state.products = [];
-  state.orders = [];
-  state.ratings = [];
-  state.messages = [];
-  state.cart = [];
+  return sessionStorage.getItem(sessionKey) === 'active';
 }
 
 function brand() {
@@ -448,328 +205,25 @@ function ensureDemoData() {
   save();
 }
 
-function shopIsConfigured(shop = state.shop) {
-  if (!shop) return false;
-  const name = String(shop.name || '').trim();
-  const type = String(shop.type || '').trim();
-  const description = String(shop.description || '').trim();
-  return Boolean(name && type && description);
-}
-
-function merchantSetupView() {
-  if (!currentUser || !state.merchant) return authView();
-
-  app.innerHTML = `
-    <main class="auth-screen">
-      <div class="auth-art">
-        ${brand()}
-        <div class="art-copy">
-          <span class="eyebrow">CONFIGURAR LOJA</span>
-          <h1>Falta pouco.<br><em>Vamos personalizar sua loja.</em></h1>
-          <p>Preencha os dados essenciais para ativar o painel e liberar o link da sua loja.</p>
-          <div class="art-tiles">
-            <div class="art-tile burger-tile"></div>
-            <div class="art-tile drink-tile"></div>
-            <div class="art-tile chart-tile"></div>
-          </div>
-        </div>
-      </div>
-
-      <section class="auth-card">
-        <span class="eyebrow">SEU NEGÓCIO</span>
-        <h2>Dados da loja</h2>
-        <p>Complete as informações para abrir o painel.</p>
-
-        <form id="shop-setup-form" class="auth-form">
-          <label>Nome da loja<input name="shopName" value="${esc(state.shop?.name || '')}" required placeholder="Ex.: Brasa & Massa"></label>
-          <label>Tipo de comercio<select name="shopType">
-            <option ${state.shop?.type === 'Restaurante' ? 'selected' : ''}>Restaurante</option>
-            <option ${state.shop?.type === 'Lanchonete' ? 'selected' : ''}>Lanchonete</option>
-            <option ${state.shop?.type === 'Hamburgueria' ? 'selected' : ''}>Hamburgueria</option>
-            <option ${state.shop?.type === 'Pizzaria' ? 'selected' : ''}>Pizzaria</option>
-            <option ${state.shop?.type === 'Loja' ? 'selected' : ''}>Loja</option>
-            <option ${state.shop?.type === 'Outro comercio' ? 'selected' : ''}>Outro comercio</option>
-          </select></label>
-          <label>Descricao<textarea name="description" rows="4" required placeholder="Descreva seu comercio, o que vende e o que torna sua loja especial.">${esc(state.shop?.description || '')}</textarea></label>
-          <button class="primary-button auth-submit" type="submit">Salvar e entrar no painel</button>
-        </form>
-      </section>
-    </main>
-  `;
-
-  document.querySelector('#shop-setup-form').onsubmit = async (event) => {
-    event.preventDefault();
-
-    const form = new FormData(event.currentTarget);
-    const shopName = String(form.get('shopName') || '').trim();
-    const shopType = String(form.get('shopType') || 'Loja').trim();
-    const description = String(form.get('description') || '').trim();
-
-    if (!shopName || !shopType || !description) {
-      notify('Preencha nome, tipo e descrição da loja.');
-      return;
-    }
-
-    const payload = {
-      nome: shopName,
-      tipo: shopType,
-      descricao: description,
-      public_id: state.shop?.publicId || `${slug(shopName)}-${Math.random().toString(36).slice(2, 7)}`,
-      esta_aberta: true,
-      aceita_entrega: true,
-      aceita_retirada: true,
-      tempo_entrega: 45,
-      tempo_retirada: 20,
-      foto_url: state.shop?.photo || null,
-      capa_url: state.shop?.cover || null
-    };
-
-    try {
-      if (!state.shop) {
-        const { data: shopData, error: shopError } = await supabaseClient
-          .from('lojas')
-          .insert({
-            merchant_id: currentUser.id,
-            ...payload
-          })
-          .select()
-          .single();
-
-        if (shopError) {
-          console.error(shopError);
-          notify('Erro ao criar a loja.');
-          return;
-        }
-
-        state.shop = {
-          id: shopData.id,
-          merchantId: shopData.merchant_id,
-          publicId: shopData.public_id,
-          name: shopData.nome || shopData.name || '',
-          type: shopData.tipo || shopData.type || '',
-          description: shopData.descricao ?? shopData.description ?? '',
-          photo: shopData.foto_url || shopData.photo_url || '',
-          cover: shopData.capa_url || '',
-          isOpen: shopData.esta_aberta ?? shopData.is_open ?? true,
-          schedule: defaultShopSchedule()
-        };
-      } else {
-        const { error: updateError } = await supabaseClient
-          .from('lojas')
-          .update({
-            nome: shopName,
-            tipo: shopType,
-            descricao: description,
-            public_id: payload.public_id,
-            foto_url: payload.foto_url,
-            capa_url: payload.capa_url,
-            esta_aberta: true,
-            aceita_entrega: true,
-            aceita_retirada: true,
-            tempo_entrega: 45,
-            tempo_retirada: 20,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', state.shop.id);
-
-        if (updateError) {
-          console.error(updateError);
-          notify('Erro ao salvar os dados da loja.');
-          return;
-        }
-
-        state.shop = {
-          ...state.shop,
-          publicId: payload.public_id,
-          name: shopName,
-          type: shopType,
-          description,
-          photo: payload.foto_url || '',
-          cover: payload.capa_url || '',
-          isOpen: true,
-          schedule: state.shop.schedule || defaultShopSchedule()
-        };
-      }
-
-      notify('Loja configurada com sucesso!');
-      render();
-    } catch (error) {
-      console.error('Erro na configuração da loja:', error);
-      notify('Erro inesperado ao configurar a loja.');
-    }
-  };
-}
-
 function render() {
   const lojaParam = publicShop();
   if (lojaParam !== null) {
     return lojaParam === state.shop?.publicId ? customerShop() : missingShop();
   }
 
-  if (!merchantLogged() || !state.merchant) return authView();
-  if (!state.shop || !shopIsConfigured()) return merchantSetupView();
-  if (state.view === 'chat') markMessagesAsRead('merchant');
+  if (!state.shop && !state.merchant) {
+    ensureDemoData();
+  }
+
+  if (!merchantLogged() || !state.merchant || !state.shop) return authView();
   merchantPanel();
 }
 
 async function bootstrap() {
-  try {
-    const {
-      data: {
-        session
-      }
-    } = await supabaseClient.auth.getSession();
-
-    currentSession = session;
-    currentUser = session?.user || null;
-
-    if (currentUser) {
-      await loadMerchantFromSupabase();
-    }
-
-    render();
-    startLiveRefresh();
-  } catch (error) {
-    console.error('Erro ao iniciar o PedeIA:', error);
-    render();
-  }
-}
-async function loadMerchantFromSupabase() {
-  if (!currentUser) return;
-
-  const { data: merchant, error: merchantError } =
-    await supabaseClient
-      .from('comerciantes')
-      .select('*')
-      .eq('id', currentUser.id)
-      .single();
-
-  if (merchantError) {
-    console.error('Erro ao carregar comerciante:', merchantError);
-    return;
-  }
-
-  state.merchant = {
-    id: merchant.id,
-    name: merchant.nome || merchant.name || currentUser.user_metadata?.name || 'Comerciante',
-    email: merchant.email
-  };
-
-  const { data: shop, error: shopError } =
-    await supabaseClient
-      .from('lojas')
-      .select('*')
-      .eq('merchant_id', currentUser.id)
-      .limit(1)
-      .maybeSingle();
-
-  if (shopError) {
-    console.error('Erro ao carregar loja:', shopError);
-    return;
-  }
-
-  if (shop) {
-    state.shop = {
-      id: shop.id,
-      merchantId: shop.merchant_id,
-      publicId: shop.public_id,
-      name: shop.nome || shop.name || '',
-      type: shop.tipo || shop.type || '',
-      description: shop.descricao ?? shop.description ?? '',
-      photo: shop.foto_url || shop.photo_url || '',
-      cover: shop.capa_url || '',
-      isOpen: shop.esta_aberta ?? shop.is_open ?? true,
-      schedule: defaultShopSchedule()
-    };
-    await loadCatalogFromSupabase();
-    await loadOrdersAndMessagesFromSupabase();
-  } else {
-    state.shop = null;
-  }
-}
-
-async function loadCatalogFromSupabase() {
-  if (!state.shop?.id) return;
-
-  const [{ data: categories, error: categoryError }, { data: products, error: productError }] = await Promise.all([
-    supabaseClient.from('categorias').select('id, nome, ordem').eq('loja_id', state.shop.id).order('ordem'),
-    supabaseClient.from('produtos').select('*').eq('loja_id', state.shop.id).order('created_at')
-  ]);
-
-  if (categoryError) {
-    console.error('Erro ao carregar categorias:', categoryError);
-    return;
-  }
-  if (productError) {
-    console.error('Erro ao carregar produtos:', productError);
-    return;
-  }
-
-  state.categories = categories.map((category) => category.nome);
-  state.products = products.map((product) => ({
-    id: product.id,
-    name: product.nome,
-    category: categories.find((category) => category.id === product.categoria_id)?.nome || '',
-    description: product.descricao || '',
-    price: Number(product.preco || 0),
-    available: product.disponivel,
-    photo: product.foto_url || '',
-    featured: Boolean(product.destaque),
-    availability: product.disponibilidade || defaultProductAvailability()
-  }));
-}
-
-async function loadOrdersAndMessagesFromSupabase() {
-  if (!state.shop?.id) return;
-
-  const [{ data: orders, error: orderError }, { data: messages, error: messageError }] = await Promise.all([
-    supabaseClient.from('pedidos').select('*, itens_do_pedido(*)').eq('loja_id', state.shop.id).order('created_at', { ascending: false }),
-    supabaseClient.from('mensagens').select('*').order('created_at')
-  ]);
-
-  if (orderError) {
-    console.error('Erro ao carregar pedidos do Supabase:', orderError);
-  } else {
-    state.orders = orders.map((order) => ({
-      id: order.id,
-      supabaseId: order.id,
-      customer: order.cliente_nome || 'Cliente',
-      phone: order.cliente_telefone || '',
-      address: order.endereco || '',
-      payment: order.pagamento,
-      fulfillment: order.modalidade,
-      status: order.status,
-      total: Number(order.total || 0),
-      notes: order.observacoes || '',
-      createdAt: order.created_at,
-      updatedAt: order.updated_at,
-      readyAt: order.pronto_em ? new Date(order.pronto_em).getTime() : Date.now(),
-      items: (order.itens_do_pedido || []).map((item) => ({
-        id: item.produto_id,
-        name: item.nome_produto,
-        description: item.descricao_produto,
-        quantity: item.quantidade,
-        price: Number(item.preco_unitario || 0),
-        notes: item.observacao || ''
-      }))
-    }));
-  }
-
-  if (messageError) {
-    console.error('Erro ao carregar mensagens do Supabase:', messageError);
-  } else {
-    state.messages = messages.map((message) => ({
-      id: message.id,
-      orderId: message.pedido_id || null,
-      from: message.tipo_remetente,
-      text: message.mensagem,
-      time: new Date(message.created_at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
-      scope: message.pedido_id ? 'order' : 'store',
-      vistaPeloComerciante: message.vista_pelo_comerciante,
-      vistaPeloCliente: message.vista_pelo_cliente,
-      fixada: Boolean(message.fixada)
-    }));
-  }
+  await loadFromServer();
+  await syncServerState();
+  render();
+  startLiveRefresh();
 }
 
 function startLiveRefresh() {
@@ -778,18 +232,21 @@ function startLiveRefresh() {
   window.__pedeiaLiveRefresh = setInterval(async () => {
     const lojaParam = publicShop();
 
-    // Área pública da loja
     if (lojaParam !== null) {
       await syncServerState();
-
+      if (state.shop && lojaParam === state.shop.publicId && app) {
+        customerShop();
+      }
       return;
     }
 
-    // IMPORTANTE:
-    // Não recriar a tela de login automaticamente.
-    // Só atualizar a área do comerciante se ele já estiver logado.
-    if (merchantLogged() && app) {
+    if (state.merchant && state.shop && app) {
       await syncServerState();
+      if (merchantLogged()) {
+        render();
+      } else if (document.visibilityState === 'visible') {
+        render();
+      }
     }
   }, 1500);
 }
@@ -814,30 +271,12 @@ function authView() {
         <span class="eyebrow">PAINEL DO COMERCIANTE</span>
         <h2>Vamos comecar?</h2>
         <p>Crie sua conta e coloque sua loja no ar.</p>
-       <div class="auth-tabs">
-        <button
-          type="button"
-          class="${currentAuthTab === 'register' ? 'selected' : ''}"
-          data-auth="register"
-          aria-selected="${currentAuthTab === 'register' ? 'true' : 'false'}"
-        >
-          Criar conta
-        </button>
+        <div class="auth-tabs">
+          <button class="selected" data-auth="register">Criar conta</button>
+          <button data-auth="login">Entrar</button>
+        </div>
 
-        <button
-          type="button"
-          class="${currentAuthTab === 'login' ? 'selected' : ''}"
-          data-auth="login"
-          aria-selected="${currentAuthTab === 'login' ? 'true' : 'false'}"
-        >
-          Entrar
-        </button>
-      </div>
-
-       <form
-          id="register-form"
-          class="auth-form ${currentAuthTab === 'register' ? '' : 'hidden'}"
-        >
+        <form id="register-form" class="auth-form">
           <label>Seu nome<input name="name" required placeholder="Como podemos chamar voce?"></label>
           <label>E-mail<input name="email" type="email" required placeholder="voce@email.com"></label>
           <label>Senha<input name="password" type="password" minlength="6" required placeholder="Minimo de 6 caracteres"></label>
@@ -846,18 +285,13 @@ function authView() {
           <button class="primary-button auth-submit">Criar minha conta <b>-></b></button>
         </form>
 
-        <form
-          id="login-form"
-          class="auth-form ${currentAuthTab === 'login' ? '' : 'hidden'}"
-        >
+        <form id="login-form" class="auth-form hidden">
           <label>E-mail<input name="email" type="email" required placeholder="voce@email.com"></label>
           <label>Senha<input name="password" type="password" required placeholder="Sua senha"></label>
           <button class="primary-button auth-submit">Entrar no painel <b>-></b></button>
-          <button class="text-button" type="button" id="resend-confirmation">Reenviar confirmacao de e-mail</button>
         </form>
 
-        ${accessNotice ? `<div class="access-notice" role="status">${esc(accessNotice)}</div>` : ''}
-        <p class="auth-note">O cliente pode pedir sem cadastro. O acesso do comerciante passa por uma análise antes da liberação do painel.</p>
+        <p class="auth-note">O cliente pode pedir sem cadastro. Se criar uma conta, seus dados ficam disponiveis em outros dispositivos quando o banco estiver conectado.</p>
       </section>
     </main>
   `;
@@ -867,242 +301,164 @@ function authView() {
   });
   document.querySelector('#register-form').onsubmit = registerMerchant;
   document.querySelector('#login-form').onsubmit = loginMerchant;
-  document.querySelector('#resend-confirmation').onclick = resendConfirmation;
 }
+
 function switchAuth(type) {
-  const registerForm = document.querySelector('#register-form');
-  const loginForm = document.querySelector('#login-form');
-
-  if (!registerForm || !loginForm) return;
-
-  // Guarda a aba atual
-  currentAuthTab = type;
-
   document.querySelectorAll('[data-auth]').forEach((button) => {
-    const selected = button.dataset.auth === type;
-
-    button.classList.toggle('selected', selected);
-    button.setAttribute('aria-selected', selected ? 'true' : 'false');
+    button.classList.toggle('selected', button.dataset.auth === type);
   });
-
-  registerForm.classList.toggle('hidden', type !== 'register');
-  loginForm.classList.toggle('hidden', type !== 'login');
+  document.querySelector('#register-form').classList.toggle('hidden', type !== 'register');
+  document.querySelector('#login-form').classList.toggle('hidden', type !== 'login');
 }
-async function registerMerchant(event) {
-  event.preventDefault();
 
-  if (registrationInProgress) return;
-  registrationInProgress = true;
-  const submitButton = event.currentTarget.querySelector('button[type="submit"]');
-  if (submitButton) {
-    submitButton.disabled = true;
-    submitButton.textContent = 'Enviando solicitação...';
-  }
+// ---------------------------------------------------------------------------
+// ASSINATURA
+// Consulta o status da assinatura do comerciante no Supabase antes de deixar
+// o fluxo avancar para a criacao/abertura da loja. Se a funcao RPC nao
+// existir ou o Supabase nao responder (ex.: ambiente local sem conexao),
+// tratamos como "nao foi possivel verificar" e deixamos o fluxo seguir, para
+// nao travar o protótipo quando o backend de assinaturas nao estiver ligado.
+// ---------------------------------------------------------------------------
 
-  const data = new FormData(event.currentTarget);
+const expiredStatuses = ['expirada', 'expired', 'vencida', 'cancelada', 'inativa', 'inactive'];
 
-  const name = String(data.get('name') || '').trim();
-  const email = String(data.get('email') || '').trim().toLowerCase();
-  const password = String(data.get('password') || '');
-  const shopName = String(data.get('shopName') || '').trim();
-  const shopType = String(data.get('shopType') || 'Loja').trim();
-
-  if (!name || !email || !shopName || password.length < 6) {
-    registrationInProgress = false;
-    notify('Preencha todos os campos corretamente.');
-    return;
-  }
+async function fetchSubscriptionStatus(identifier) {
+  if (typeof supabaseClient === 'undefined' || !supabaseClient?.rpc) return null;
 
   try {
-    notify('Enviando sua solicitação...');
-
-    const { data: authData, error: authError } =
-      await supabaseClient.auth.signUp({
-        email,
-        password
-      });
-
-    if (authError) {
-      console.error(authError);
-      const rateLimited = authError.code === 'over_email_send_rate_limit'
-        || /email rate limit exceeded/i.test(authError.message || '');
-      const emailDeliveryError = /error sending confirmation email|error sending email|smtp/i.test(authError.message || '');
-      notify(rateLimited
-        ? 'O limite de e-mails do Supabase foi atingido. Aguarde alguns minutos antes de tentar novamente ou configure um SMTP próprio.'
-        : emailDeliveryError
-          ? 'O Supabase não conseguiu enviar o e-mail de confirmação. Configure um SMTP válido em Authentication > SMTP Settings ou desative a confirmação de e-mail durante os testes.'
-          : authError.message || 'Erro ao criar a conta.');
-      return;
-    }
-
-    const user = authData.user;
-
-    if (!user) {
-      notify('Não foi possível criar o usuário.');
-      return;
-    }
-
-    const { error: requestError } = await supabaseClient
-      .from('solicitacoes_acesso')
-      .insert({
-        auth_user_id: user.id,
-        nome: name,
-        email,
-        nome_comercio: shopName,
-        tipo_comercio: shopType,
-        status: 'pending'
-      });
-
-    if (requestError) {
-      console.error(requestError);
-      await supabaseClient.auth.signOut();
-      notify('Não foi possível registrar sua solicitação.');
-      return;
-    }
-
-    await supabaseClient.auth.signOut();
-    currentUser = null;
-    currentSession = null;
-    accessNotice = 'Sua conta foi enviada para análise de aprovação. Em breve você receberá um e-mail com os próximos passos e os dados de acesso.';
-    currentAuthTab = 'login';
-    render();
-    notify('Solicitação enviada para análise.');
-  } catch (error) {
-    console.error(error);
-    const rateLimited = error?.code === 'over_email_send_rate_limit'
-      || /email rate limit exceeded/i.test(error?.message || '');
-    const emailDeliveryError = /error sending confirmation email|error sending email|smtp/i.test(error?.message || '');
-    notify(rateLimited
-      ? 'O limite de e-mails do Supabase foi atingido. Aguarde alguns minutos e tente novamente.'
-      : emailDeliveryError
-        ? 'O Supabase não conseguiu enviar o e-mail de confirmação. Verifique o SMTP em Authentication > SMTP Settings.'
-        : 'Erro inesperado ao criar a conta.');
-  } finally {
-    registrationInProgress = false;
-    if (submitButton) {
-      submitButton.disabled = false;
-      submitButton.textContent = 'Criar minha conta ->';
-    }
-  }
-}
-async function loginMerchant(event) {
-  event.preventDefault();
-
-  const data = new FormData(event.currentTarget);
-
-  const email = String(data.get('email') || '')
-    .trim()
-    .toLowerCase();
-
-  const password = String(data.get('password') || '');
-
-  if (!email || !password) {
-    notify('Preencha o e-mail e a senha.');
-    return;
-  }
-
-  try {
-    if (typeof supabaseClient === 'undefined') {
-      throw new Error(
-        'supabaseClient não foi carregado. Verifique o index.html.'
-      );
-    }
-
-    const { data: authData, error } =
-      await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
+    const { data, error } = await supabaseClient.rpc('verificar_assinatura_comerciante', {
+      p_comerciante_id: identifier
+    });
 
     if (error) {
-      console.error('ERRO DE LOGIN:', error);
-      if (error.code === 'email_not_confirmed' || /email not confirmed/i.test(error.message || '')) {
-        notify('Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada ou reenvie a confirmação.');
-        return;
-      }
-      notify(error.message || 'E-mail ou senha inválidos.');
-      return;
+      console.error('Falha ao verificar assinatura:', error);
+      return null;
     }
 
-    if (!authData?.user) {
-      console.error('Supabase não retornou usuário.');
-      notify('Login não retornou um usuário.');
-      return;
-    }
-
-    currentUser = authData.user;
-    currentSession = authData.session;
-
-    const { data: accessRequest, error: accessError } = await supabaseClient
-      .from('solicitacoes_acesso')
-      .select('status, motivo_rejeicao')
-      .eq('auth_user_id', currentUser.id)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (accessError) console.error('Erro ao consultar solicitação de acesso:', accessError);
-    if (accessRequest?.status === 'pending') {
-      await supabaseClient.auth.signOut();
-      currentUser = null;
-      currentSession = null;
-      accessNotice = 'Sua conta ainda está em análise. Você receberá um e-mail assim que o acesso for aprovado.';
-      render();
-      return;
-    }
-    if (accessRequest?.status === 'rejected') {
-      await supabaseClient.auth.signOut();
-      currentUser = null;
-      currentSession = null;
-      accessNotice = `Sua solicitação não foi aprovada neste momento${accessRequest.motivo_rejeicao ? `: ${accessRequest.motivo_rejeicao}` : '.'}`;
-      render();
-      return;
-    }
-
-    await loadMerchantFromSupabase();
-
-    if (!state.merchant || !state.shop) {
-      state.merchant = {
-        id: authData.user.id,
-        name: authData.user.user_metadata?.name || 'Comerciante',
-        email: authData.user.email || email
-      };
-    }
-
-    sessionStorage.setItem(sessionKey, 'active');
-    accessNotice = '';
-    save();
-
-    notify('Login realizado com sucesso!');
-    render();
-  } catch (error) {
-    console.error('ERRO REAL DO LOGIN:', error);
-    notify(error?.message || 'Erro inesperado ao entrar.');
+    if (typeof data === 'string') return data.toLowerCase();
+    if (Array.isArray(data) && data[0]) return String(data[0].status_assinatura || data[0].status || '').toLowerCase();
+    if (data && typeof data === 'object') return String(data.status_assinatura || data.status || '').toLowerCase();
+    return null;
+  } catch (err) {
+    console.error('Falha ao verificar assinatura:', err);
+    return null;
   }
 }
 
-async function resendConfirmation() {
-  const email = String(document.querySelector('#login-form input[name="email"]')?.value || '')
-    .trim()
-    .toLowerCase();
+function isSubscriptionExpired(status) {
+  return !!status && expiredStatuses.includes(status);
+}
 
-  if (!email) {
-    notify('Digite seu e-mail para reenviar a confirmação.');
+function subscriptionExpiredView() {
+  app.innerHTML = `
+    <main class="auth-screen">
+      <div class="auth-art">
+        ${brand()}
+        <div class="art-copy">
+          <span class="eyebrow">ASSINATURA</span>
+          <h1>Quase la.</h1>
+          <p>Falta so renovar para continuar configurando sua loja.</p>
+        </div>
+      </div>
+      <section class="auth-card">
+        <span class="eyebrow">ASSINATURA EXPIRADA</span>
+        <h2>Sua assinatura esta expirada</h2>
+        <p>Renove sua assinatura para continuar e configurar sua loja.</p>
+        <button class="primary-button" data-action="voltar-login">Voltar</button>
+      </section>
+    </main>
+  `;
+
+  document.querySelector('[data-action="voltar-login"]').onclick = () => {
+    sessionStorage.removeItem(sessionKey);
+    state.merchant = null;
+    state.shop = null;
+    render();
+  };
+}
+
+async function registerMerchant(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = new FormData(form);
+  const shopName = String(data.get('shopName') || '').trim();
+  const email = String(data.get('email') || '').trim().toLowerCase();
+  const password = String(data.get('password') || '');
+
+  if (!shopName || !email || password.length < 6) {
+    notify('Preencha todos os campos com dados validos.');
     return;
   }
 
-  const { error } = await supabaseClient.auth.resend({
-    type: 'signup',
-    email
-  });
+  const submitButton = form.querySelector('.auth-submit');
+  if (submitButton) submitButton.disabled = true;
 
-  if (error) {
-    console.error('ERRO AO REENVIAR CONFIRMAÇÃO:', error);
-    notify('Não foi possível reenviar agora. Confira o e-mail e tente novamente.');
+  const status = await fetchSubscriptionStatus(email);
+
+  if (submitButton) submitButton.disabled = false;
+
+  if (isSubscriptionExpired(status)) {
+    subscriptionExpiredView();
     return;
   }
 
-  notify('E-mail de confirmação reenviado. Verifique sua caixa de entrada e spam.');
+  state.merchant = {
+    name: String(data.get('name') || '').trim(),
+    email,
+    password
+  };
+
+  state.shop = {
+    name: shopName,
+    type: String(data.get('shopType') || 'Loja'),
+    publicId: `${slug(shopName)}-${Math.random().toString(36).slice(2, 7)}`,
+    description: 'Adicione uma descricao para apresentar seu comercio.',
+    photo: '',
+    isOpen: true,
+    schedule: defaultShopSchedule()
+  };
+
+  state.categories = [];
+  state.products = [];
+  state.orders = [];
+  state.ratings = [];
+  state.messages = [];
+  state.cart = [];
+  state.orderQuery = '';
+  state.orderFilter = '';
+  state.delivery = { pickup: true, delivery: true, pickupMinutes: 20, deliveryMinutes: 45 };
+
+  sessionStorage.setItem(sessionKey, 'active');
+  renderSaved();
+  notify('Conta criada. Agora personalize sua loja.');
+}
+
+async function loginMerchant(event) {
+  event.preventDefault();
+  const form = event.currentTarget;
+  const data = new FormData(form);
+  const email = String(data.get('email') || '').trim().toLowerCase();
+  const password = String(data.get('password') || '');
+
+  if (!state.merchant || email !== state.merchant.email || password !== state.merchant.password) {
+    notify('E-mail ou senha invalidos.');
+    return;
+  }
+
+  const submitButton = form.querySelector('.auth-submit');
+  if (submitButton) submitButton.disabled = true;
+
+  const status = await fetchSubscriptionStatus(email);
+
+  if (submitButton) submitButton.disabled = false;
+
+  if (isSubscriptionExpired(status)) {
+    subscriptionExpiredView();
+    return;
+  }
+
+  sessionStorage.setItem(sessionKey, 'active');
+  render();
 }
 
 function nav(view, icon, text, count = '') {
@@ -1110,56 +466,16 @@ function nav(view, icon, text, count = '') {
   return `<button class="${state.view === view ? 'active' : ''}" data-view="${view}"><span class="nav-icon ${icon}"></span>${text}${badge > 0 ? `<b class="nav-badge">${badge}</b>` : ''}</button>`;
 }
 
-function isCompletedOrder(order) {
-  return ['Entregue', 'Finalizado', 'Cancelado'].includes(order?.status);
-}
-
-function activeOrders() {
-  return state.orders.filter((order) => !isCompletedOrder(order));
-}
-
-function completedOrders() {
-  return state.orders
-    .filter(isCompletedOrder)
-    .sort((first, second) => Number(second.updatedAt || second.createdAt || 0) - Number(first.updatedAt || first.createdAt || 0));
-}
-
 function unreadMessagesCount(type = 'merchant') {
   if (type === 'merchant') {
-    return state.messages.filter((msg) => (msg.scope === 'order' || msg.scope === 'store') && msg.from !== 'merchant' && !msg.vistaPeloComerciante).length;
+    return state.messages.filter((msg) => msg.scope === 'order' && msg.from !== 'merchant').length;
   }
-  return state.messages.filter((msg) => msg.scope === 'store' && msg.from === 'merchant' && !msg.vistaPeloCliente).length;
-}
-
-function markMessagesAsRead(reader, scope = null) {
-  const field = reader === 'merchant' ? 'vistaPeloComerciante' : 'vistaPeloCliente';
-  const sender = reader === 'merchant' ? 'merchant' : 'customer';
-  let changed = false;
-
-  state.messages.forEach((message) => {
-    if ((!scope || message.scope === scope) && message.from !== sender && !message[field]) {
-      message[field] = true;
-      changed = true;
-    }
-  });
-
-  if (changed) save();
-
-  if (changed && typeof supabaseClient !== 'undefined') {
-    const updates = state.messages
-      .filter((message) => message[field] && isUuid(message.id))
-      .map((message) => supabaseClient
-        .from('mensagens')
-        .update({ [field === 'vistaPeloComerciante' ? 'vista_pelo_comerciante' : 'vista_pelo_cliente']: true })
-        .eq('id', message.id));
-    void Promise.all(updates);
-  }
+  return state.messages.filter((msg) => msg.scope === 'store' && msg.from === 'merchant').length;
 }
 
 function merchantPanel() {
   const page = state.view;
   const revenue = state.orders.filter((order) => order.createdAt && order.createdAt > Date.now() - 86400000).reduce((sum, order) => sum + Number(order.total || 0), 0);
-  const printerConnected = state.printers.some((printer) => printer.status === 'Conectada');
 
   app.innerHTML = `
     <div class="shell">
@@ -1183,8 +499,7 @@ function merchantPanel() {
         </div>
 
         <nav class="side-nav">
-          ${nav('orders', 'orders', 'Pedidos', activeOrders().length)}
-          ${nav('history', 'orders', 'Histórico', completedOrders().length)}
+          ${nav('orders', 'orders', 'Pedidos', state.orders.length)}
           ${nav('dashboard', 'home', 'Visao geral')}
           ${nav('menu', 'menu', 'Cardapio')}
           ${nav('categories', 'categories', 'Categorias')}
@@ -1196,7 +511,7 @@ function merchantPanel() {
         <div class="sidebar-bottom">
           <button class="help-link" data-action="copy">Compartilhar loja</button>
           <div class="profile-chip">
-            <div class="profile-photo">${esc(String(state.merchant.name || 'CO').slice(0, 2).toUpperCase())}</div>
+            <div class="profile-photo">${esc(state.merchant.name.slice(0, 2).toUpperCase())}</div>
             <div>
               <strong>${esc(state.merchant.name)}</strong>
               <small>Comerciante</small>
@@ -1209,20 +524,10 @@ function merchantPanel() {
       <main class="main-content">
         <header class="topbar">
           <div class="breadcrumb">PedeIA <span>/</span> ${page}</div>
-          <div class="topbar-actions">
-            <button class="status-bubble ${state.shop.isOpen ? 'is-positive' : 'is-negative'}" data-action="toggle-open" title="${state.shop.isOpen ? 'Loja aberta' : 'Loja fechada'}">
-              <span class="status-bubble-icon store-status-icon">▣</span>
-              <span class="status-bubble-label">${state.shop.isOpen ? 'Aberta' : 'Fechada'}</span>
-            </button>
-            <button class="status-bubble ${printerConnected ? 'is-positive' : 'is-negative'}" data-view="printers" title="${printerConnected ? 'Impressora conectada' : 'Nenhuma impressora conectada'}">
-              <span class="status-bubble-icon printer-status-icon">▣</span>
-              <span class="status-bubble-label">${printerConnected ? 'Impressora conectada' : 'Sem impressora'}</span>
-            </button>
-            <button class="outline-button" data-action="open-shop">Ver minha loja</button>
-          </div>
+          <button class="outline-button" data-action="open-shop">Ver minha loja</button>
         </header>
 
-        ${page === 'orders' ? orderBoard() : page === 'history' ? orderHistory() : page === 'dashboard' ? overview(revenue) : page === 'menu' ? menuView() : page === 'categories' ? categoryView() : page === 'chat' ? chatView() : page === 'printers' ? printersView() : settingsView()}
+        ${page === 'orders' ? orderBoard() : page === 'dashboard' ? overview(revenue) : page === 'menu' ? menuView() : page === 'categories' ? categoryView() : page === 'chat' ? chatView() : page === 'printers' ? printersView() : settingsView()}
       </main>
       <button class="quick-chat-fab" data-action="quick-chat" aria-label="Abrir conversas">💬</button>
     </div>
@@ -1288,7 +593,7 @@ function countStatus(status) {
 
 function orderBoard() {
   const query = String(state.orderQuery || '').toLowerCase();
-  const visible = activeOrders().filter((order) => {
+  const visible = state.orders.filter((order) => {
     const text = `${order.id} ${order.customer || ''}`.toLowerCase();
     const matchesQuery = !query || text.includes(query);
     const matchesFilter = !state.orderFilter || order.fulfillment === state.orderFilter;
@@ -1304,11 +609,6 @@ function orderBoard() {
       </div>
       <button class="primary-button" data-action="copy">Compartilhar loja</button>
     </section>
-
-    <div class="board-alert" role="status">
-      <span class="board-alert-icon">!</span>
-      <span>Pedidos novos aparecem aqui em tempo real enquanto sua loja estiver aberta.</span>
-    </div>
 
     <div class="board-tools">
       <div class="search-field">
@@ -1367,47 +667,6 @@ function orderBoard() {
   `;
 }
 
-function orderHistory() {
-  const orders = completedOrders();
-
-  return `
-    <section class="page-intro board-intro">
-      <div>
-        <p class="eyebrow">MEMÓRIA DA SUA OPERAÇÃO</p>
-        <h1>Histórico de pedidos</h1>
-        <p class="intro-copy">Pedidos concluídos ficam guardados aqui para consulta, sem voltar ao quadro ativo.</p>
-      </div>
-      <span class="history-total">${orders.length} ${orders.length === 1 ? 'pedido salvo' : 'pedidos salvos'}</span>
-    </section>
-
-    <section class="history-panel panel">
-      ${orders.length ? `
-        <div class="history-list">
-          ${orders.map((order) => `
-            <article class="history-order">
-              <div class="history-order-mark">✓</div>
-              <div class="history-order-main">
-                <div class="history-order-heading">
-                  <strong>${esc(order.id)}</strong>
-                  <span>${esc(order.status)}</span>
-                </div>
-                <p>${esc(order.customer || 'Cliente')} · ${order.fulfillment === 'delivery' ? 'Delivery' : 'Retirada'} · ${money(order.total)}</p>
-              </div>
-              <time>${formatOrderDate(order.updatedAt || order.createdAt)}</time>
-              <button class="outline-button history-details" data-action="open-order" data-id="${order.id}">Ver detalhes</button>
-            </article>
-          `).join('')}
-        </div>
-      ` : empty('Nenhum pedido finalizado', 'Quando um pedido for entregue ou cancelado, ele aparecerá aqui.')}
-    </section>
-  `;
-}
-
-function formatOrderDate(value) {
-  if (!value) return 'Sem data';
-  return new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
 function orderCard(order) {
   const late = order.status !== 'Entregue' && Number(order.readyAt || 0) < Date.now();
   return `
@@ -1449,7 +708,7 @@ function orderDetails(order) {
       <p>${esc(order.customer || 'Cliente')} · ${order.fulfillment === 'delivery' ? esc(order.address || 'Endereco nao informado') : 'Retirada no local'}</p>
     </div>
     <div class="detail-items">
-      ${(order.items || []).map((item) => `<div class="detail-item"><span class="detail-item-photo">${item.photo ? `<img src="${item.photo}" alt="">` : '<span class="food-placeholder"></span>'}</span><span><strong>${item.quantity}x ${esc(item.name)}</strong><small>${esc(item.description || '')}</small></span></div>`).join('') || '<p>Itens registrados no pedido.</p>'}
+      ${(order.items || []).map((item) => `<div><strong>${item.quantity}x ${esc(item.name)}</strong><small>${esc(item.description || '')}</small></div>`).join('') || '<p>Itens registrados no pedido.</p>'}
     </div>
     <div class="detail-chat">
       <strong>Conversa com este cliente</strong>
@@ -1469,7 +728,6 @@ function orderDetails(order) {
     const text = String(input.value || '').trim();
     if (!text) return;
     state.messages.push({
-      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       orderId: order.id,
       from: 'merchant',
       text,
@@ -1477,7 +735,6 @@ function orderDetails(order) {
       scope: 'order'
     });
     save();
-    void persistMessageToSupabase(state.messages[state.messages.length - 1], order.supabaseId || null);
     closeDialog();
     orderDetails(order);
   });
@@ -1504,7 +761,7 @@ function menuView() {
       </div>
 
       ${state.products.length ? state.products.map((product) => `
-        <div class="manage-row ${isProductAvailableNow(product) ? '' : 'product-unavailable'}">
+        <div class="manage-row">
           <span class="manage-emoji">${product.photo ? `<img src="${product.photo}" alt="">` : '<span class="food-placeholder"></span>'}</span>
           <div>
             <strong>${esc(product.name)}</strong>
@@ -1515,8 +772,6 @@ function menuView() {
             <input type="checkbox" data-product="${product.id}" ${product.available ? 'checked' : ''}>
             <span></span>
           </label>
-          <span class="product-availability-label">${isProductAvailableNow(product) ? 'Disponível agora' : 'Indisponível'}</span>
-          <label class="featured-toggle" title="Mostrar na área de destaques"><input type="checkbox" data-featured-product="${product.id}" ${product.featured ? 'checked' : ''}><span>★</span></label>
           <button class="dots" data-action="edit-product" data-id="${product.id}">Editar</button>
         </div>
       `).join('') : empty('Seu cardapio esta vazio', 'Crie uma categoria e adicione seu primeiro produto.')}
@@ -1549,7 +804,6 @@ function categoryView() {
             <span>${String(index + 1).padStart(2, '0')}</span>
             <strong>${esc(category)}</strong>
             <small>${state.products.filter((item) => item.category === category).length} produtos</small>
-            <button class="category-edit-button" data-action="edit-category" data-category="${esc(category)}">Editar</button>
             <button data-action="remove-category" data-category="${esc(category)}">Remover</button>
           </div>
         `).join('') : empty('Nenhuma categoria criada', 'Comece criando a primeira aba.')}
@@ -1558,113 +812,58 @@ function categoryView() {
   `;
 }
 
-function conversationKey(message) {
-  return message.orderId ? `order:${message.orderId}` : 'store';
-}
-
-function conversationTitle(key, messages) {
-  if (key === 'store') return 'Conversa geral da loja';
-  const order = state.orders.find((item) => String(item.id) === String(key.replace('order:', '')));
-  return order ? `${order.customer || 'Cliente'} · Pedido ${order.id}` : `Pedido ${key.replace('order:', '')}`;
-}
-
-function chatConversations() {
-  const groups = new Map();
-  state.messages
-    .filter((message) => message.scope === 'order' || message.scope === 'store')
-    .forEach((message) => {
-      const key = conversationKey(message);
-      if (!groups.has(key)) groups.set(key, []);
-      groups.get(key).push(message);
-    });
-
-  return [...groups.entries()]
-    .map(([key, messages]) => ({
-      key,
-      messages,
-      pinned: messages.some((message) => message.fixada),
-      unread: messages.some((message) => message.from !== 'merchant' && !message.vistaPeloComerciante),
-      latest: messages[messages.length - 1]
-    }))
-    .sort((first, second) => Number(second.pinned) - Number(first.pinned));
-}
-
 function chatView() {
-  markMessagesAsRead('merchant');
-  const conversations = chatConversations();
-  const selectedKey = conversations.some((conversation) => conversation.key === state.chatConversation) ? state.chatConversation : null;
-  const selected = conversations.find((conversation) => conversation.key === selectedKey);
-
   return `
     <section class="page-intro">
       <div>
         <p class="eyebrow">CONVERSE COM QUEM PEDIU</p>
         <h1>Conversas</h1>
-        <p class="intro-copy">Escolha uma conversa para ver as mensagens e responder ao cliente.</p>
+        <p class="intro-copy">Cada conversa fica ligada ao pedido do cliente.</p>
       </div>
     </section>
 
-    <section class="chat-layout">
-      <aside class="conversation-list panel">
-        <div class="conversation-list-heading"><strong>Suas conversas</strong><span>${conversations.length}</span></div>
-        ${conversations.length ? conversations.map((conversation) => `
-          <div class="conversation-row ${conversation.key === selectedKey ? 'selected' : ''} ${conversation.pinned ? 'pinned' : ''}">
-            <button class="conversation-select" data-chat-conversation="${esc(conversation.key)}">
-              <span class="conversation-avatar">${conversation.key === 'store' ? 'L' : 'P'}</span>
-              <span class="conversation-summary"><strong>${esc(conversationTitle(conversation.key, conversation.messages))}</strong><small>${esc(conversation.latest?.text || '')}</small></span>
-              ${conversation.unread ? '<b class="conversation-unread"></b>' : ''}
-            </button>
-            <button class="conversation-pin" data-chat-pin-conversation="${esc(conversation.key)}" aria-label="${conversation.pinned ? 'Desafixar conversa' : 'Fixar conversa'}">${conversation.pinned ? '★' : '☆'}</button>
-          </div>
-        `).join('') : empty('Nenhuma conversa ainda', 'As mensagens dos clientes aparecerão aqui.')}
-      </aside>
-
-      <section class="chat-thread panel ${selected ? 'has-conversation' : ''}">
-        ${selected ? `
-          <header class="chat-thread-heading">
-            <div><span class="eyebrow">CONVERSA</span><h2>${esc(conversationTitle(selected.key, selected.messages))}</h2></div>
-            <div class="chat-thread-actions">
-              <button class="conversation-pin thread-pin" data-chat-pin-conversation="${esc(selected.key)}" aria-label="${selected.pinned ? 'Desafixar conversa' : 'Fixar conversa'}">${selected.pinned ? '★ Fixada' : '☆ Fixar'}</button>
-              <button class="close-conversation" data-close-chat aria-label="Fechar conversa" title="Fechar conversa">×</button>
-            </div>
-          </header>
-          <div class="chat-messages">
-            ${selected.messages.map((message) => `
-              <article class="message ${message.from === 'merchant' ? 'mine' : ''} ${message.fixada ? 'pinned-message' : ''}">
-                <div class="message-text">${esc(message.text)}</div>
-                <small>${esc(message.time)}</small>
-                <div class="message-actions">
-                  <button data-chat-pin-message="${esc(message.id)}">${message.fixada ? 'Desafixar' : 'Fixar'}</button>
-                  <button data-chat-delete-message="${esc(message.id)}">Excluir</button>
-                </div>
-              </article>
-            `).join('')}
-          </div>
-          <form class="chat-compose" data-store-chat data-chat-order="${selected.key.startsWith('order:') ? esc(selected.key.replace('order:', '')) : ''}">
-            <input name="message" required placeholder="Responder ao cliente">
-            <button class="primary-button">Enviar mensagem</button>
-          </form>
-        ` : empty('Selecione uma conversa', 'Clique em uma conversa ao lado para visualizar as mensagens.')}
-      </section>
+    <section class="panel chat-panel">
+      <div class="chat-messages">
+        ${state.messages.filter((msg) => msg.scope === 'order').map((msg) => `<div class="message ${msg.from === 'merchant' ? 'mine' : ''}"><small>Pedido ${esc(msg.orderId || '')}</small>${esc(msg.text)}<small>${esc(msg.time)}</small></div>`).join('') || empty('Nenhuma conversa ainda', 'O botao de conversar aparece em cada pedido.')}
+      </div>
+      <form class="chat-compose">
+        <input name="message" required placeholder="Selecione um pedido para responder">
+      </form>
     </section>
   `;
 }
 
 function printersView() {
-  const printerTab = state.printerConfig.tab || 'list';
-  const activePrinter = state.printers.find((printer) => printer.default) || state.printers[0];
-
-  const modelView = `
-    <section class="printer-model-panel panel">
-      <div class="printer-section-heading">
-        <div>
-          <span class="eyebrow">MODELOS DE IMPRESSAO</span>
-          <h2>Configure sua comanda</h2>
-          <p>Escolha quais informações aparecem na impressão dos pedidos.</p>
-        </div>
-        <button class="secondary-button" data-printer-tab="list">Voltar para impressoras</button>
+  const sample = sampleOrder();
+  return `
+    <section class="page-intro">
+      <div>
+        <p class="eyebrow">IMPRESSAO E COMANDAS</p>
+        <h1>Impressoras</h1>
+        <p class="intro-copy">Conecte via Bluetooth, cabo USB, rede ou uso dos modelos que a sua loja preferir.</p>
       </div>
-      <div class="printer-settings-grid">
+      <button class="primary-button" data-action="new-printer">Adicionar impressora</button>
+    </section>
+
+    <section class="settings-grid">
+      <article class="panel shop-editor">
+        <div class="editor-cover"><span>Print</span></div>
+        <div class="editor-body">
+          <p class="eyebrow">DISPOSITIVOS CADASTRADOS</p>
+          ${state.printers.length ? state.printers.map((printer) => `
+            <div class="printer-row">
+              <div>
+                <strong>${esc(printer.name)}</strong>
+                <small>${esc(printer.type)} · ${esc(printer.status || 'Disponivel')}</small>
+              </div>
+              <button class="secondary-button" data-action="connect-printer" data-printer-id="${printer.id}">${printer.status === 'Conectada' ? 'Testar' : 'Conectar'}</button>
+            </div>
+          `).join('') : '<p class="muted">Nenhuma impressora cadastrada.</p>'}
+        </div>
+      </article>
+
+      <article class="panel operation-settings">
+        <p class="eyebrow">CONFIGURACAO DA COMANDA</p>
         <label>Tipo de conexão<select data-printer-field="mode">
           <option value="bluetooth" ${state.printerConfig.mode === 'bluetooth' ? 'selected' : ''}>Bluetooth</option>
           <option value="cabo" ${state.printerConfig.mode === 'cabo' ? 'selected' : ''}>Cabo / USB</option>
@@ -1672,66 +871,24 @@ function printersView() {
           <option value="pdf" ${state.printerConfig.mode === 'pdf' ? 'selected' : ''}>PDF / impressão simples</option>
         </select></label>
         <label>Nome da impressora<input data-printer-field="deviceName" value="${esc(state.printerConfig.deviceName || '')}" placeholder="Ex.: Epson TM-T20"></label>
-        <label>Quantidade de vias<input type="number" min="1" max="10" data-printer-field="copies" value="${state.printerConfig.copies || 1}"></label>
-      </div>
-      <div class="printer-options-grid">
-        ${[['autoPrint', 'Imprimir automaticamente ao aceitar'], ['includeCustomer', 'Incluir nome do cliente'], ['includePhone', 'Incluir telefone'], ['includeAddress', 'Incluir dados de entrega'], ['includeItems', 'Incluir itens do pedido'], ['includeNotes', 'Incluir observacoes'], ['includePayment', 'Incluir forma de pagamento'], ['includeFooter', 'Mostrar mensagem final']].map(([field, label]) => `<label class="printer-option"><input type="checkbox" data-printer-field="${field}" ${state.printerConfig[field] ? 'checked' : ''}><span>${label}</span></label>`).join('')}
-      </div>
-      <label class="printer-footer-field">Mensagem final<textarea data-printer-field="footerText" rows="2">${esc(state.printerConfig.footerText || '')}</textarea></label>
-      <button class="primary-button" data-action="save-printer-config">Salvar modelo</button>
+        <label>Quantas vias saem<input type="number" min="1" max="10" data-printer-field="copies" value="${state.printerConfig.copies || 1}"></label>
+        <label class="choice-row"><input type="checkbox" data-printer-field="autoPrint" ${state.printerConfig.autoPrint ? 'checked' : ''}><span><strong>Imprimir automaticamente ao aceitar</strong><small>Sem precisar apertar o botão de impressão manual</small></span></label>
+        <label class="choice-row"><input type="checkbox" data-printer-field="includeCustomer" ${state.printerConfig.includeCustomer ? 'checked' : ''}><span><strong>Incluir nome do cliente</strong></span></label>
+        <label class="choice-row"><input type="checkbox" data-printer-field="includePhone" ${state.printerConfig.includePhone ? 'checked' : ''}><span><strong>Incluir telefone</strong></span></label>
+        <label class="choice-row"><input type="checkbox" data-printer-field="includeAddress" ${state.printerConfig.includeAddress ? 'checked' : ''}><span><strong>Incluir dados de entrega</strong></span></label>
+        <label class="choice-row"><input type="checkbox" data-printer-field="includeItems" ${state.printerConfig.includeItems ? 'checked' : ''}><span><strong>Incluir itens do pedido</strong></span></label>
+        <label class="choice-row"><input type="checkbox" data-printer-field="includeNotes" ${state.printerConfig.includeNotes ? 'checked' : ''}><span><strong>Incluir observações</strong></span></label>
+        <label class="choice-row"><input type="checkbox" data-printer-field="includePayment" ${state.printerConfig.includePayment ? 'checked' : ''}><span><strong>Incluir forma de pagamento</strong></span></label>
+        <label class="choice-row"><input type="checkbox" data-printer-field="includeFooter" ${state.printerConfig.includeFooter ? 'checked' : ''}><span><strong>Mostrar mensagem final</strong></span></label>
+        <label>Mensagem final<textarea data-printer-field="footerText" rows="2">${esc(state.printerConfig.footerText || '')}</textarea></label>
+        <button class="primary-button" data-action="save-printer-config">Salvar impressora</button>
+      </article>
     </section>
-  `;
 
-  const listView = `
-    <section class="printer-list-panel panel">
-      <div class="printer-section-heading">
-        <div>
-          <span class="eyebrow">1. LISTA DE IMPRESSORAS</span>
-          <h2>Impressoras conectadas</h2>
-        </div>
-        <button class="outline-button" data-action="new-printer">+ Adicionar impressora</button>
-      </div>
-      ${activePrinter ? `
-        <article class="printer-card">
-          <div class="printer-card-icon">▣</div>
-          <div class="printer-card-info">
-            <span class="printer-status">✓ ${esc(activePrinter.status || 'Conectada')}</span>
-            <strong>${esc(activePrinter.name)}</strong>
-            <small>${esc(activePrinter.type || 'Cabo')} · ${Number(state.printerConfig.copies || 1)} via(s)</small>
-            <p>Comandas vinculadas à impressão de pedidos, pagamentos e informações da loja.</p>
-          </div>
-          <div class="printer-card-actions">
-            <button class="secondary-button" data-action="print-test">▣ Testar</button>
-            <button class="icon-button printer-delete-button" data-action="delete-printer" data-printer-id="${esc(activePrinter.id)}" aria-label="Excluir impressora" title="Excluir impressora">⋮</button>
-          </div>
-        </article>
-      ` : '<div class="printer-empty">Nenhuma impressora cadastrada.</div>'}
-      <div class="printer-model-cta">
-        <div class="printer-model-icon">⌁</div>
-        <div><strong>Criar modelo de comanda</strong><p>Automatize as comandas por tipo de pedido e ganhe eficiência no seu negócio.</p></div>
-        <button class="primary-button" data-printer-tab="models">+ Criar modelo</button>
-      </div>
-    </section>
-  `;
-
-  return `
-    <section class="page-intro">
-      <div>
-        <p class="eyebrow">CONFIGURACOES / IMPRESSORAS</p>
-        <h1>Impressora</h1>
-        <p class="intro-copy">Gerencie os dispositivos e os modelos das suas comandas.</p>
-      </div>
-    </section>
-    <div class="printer-tabs">
-      <button class="${printerTab === 'list' ? 'active' : ''}" data-printer-tab="list">1. Lista de impressoras</button>
-      <button class="${printerTab === 'models' ? 'active' : ''}" data-printer-tab="models">2. Modelos de impressão</button>
-    </div>
-    ${printerTab === 'models' ? modelView : listView}
   `;
 }
 
 function settingsView() {
-  const activeSettingsTab = state.shopSettingsTab || 'identity';
   const schedule = state.shop.schedule || defaultShopSchedule();
   const scheduleRows = weekDays.map((day) => {
     const config = schedule[day] || { enabled: true, open: '11:00', close: '22:00' };
@@ -1750,63 +907,44 @@ function settingsView() {
   return `
     <section class="page-intro">
       <div>
-        <p class="eyebrow">CONFIGURACOES / MINHA LOJA</p>
+        <p class="eyebrow">CONFIGURACAO DA OPERACAO</p>
         <h1>Minha loja</h1>
-        <p class="intro-copy">Personalize sua vitrine e configure como os pedidos chegam até você.</p>
+        <p class="intro-copy">Escolha como sua loja recebe, prepara e entrega pedidos.</p>
       </div>
     </section>
 
-    <div class="shop-settings-tabs">
-      <button class="${activeSettingsTab === 'identity' ? 'active' : ''}" data-shop-settings-tab="identity">1. Identidade da loja</button>
-      <button class="${activeSettingsTab === 'operation' ? 'active' : ''}" data-shop-settings-tab="operation">2. Operação</button>
-      <button class="${activeSettingsTab === 'hours' ? 'active' : ''}" data-shop-settings-tab="hours">3. Horários</button>
-    </div>
-
-    <section class="shop-settings-layout">
-      <article class="shop-profile-panel panel shop-tab-content ${activeSettingsTab === 'identity' ? 'active' : 'hidden'}">
-        <div class="shop-profile-heading">
-          <div>
-            <span class="eyebrow">1. IDENTIDADE DA LOJA</span>
-            <h2>Como seus clientes encontram você</h2>
-            <p>Defina a imagem, o nome e a descrição que aparecem na vitrine.</p>
-          </div>
-          <span class="shop-live-status">${state.shop.isOpen ? 'Aberta' : 'Fechada'}</span>
-        </div>
-        <div class="shop-cover-preview" style="${state.shop.cover ? `background-image: linear-gradient(90deg, rgba(0,0,0,.64), rgba(0,0,0,.08)), url('${state.shop.cover}')` : ''}">
-          <div class="shop-cover-logo">${state.shop.photo ? `<img src="${state.shop.photo}" alt="">` : esc(state.shop.name.slice(0, 1).toUpperCase())}</div>
-          <div><strong>${esc(state.shop.name)}</strong><small>Prévia da sua vitrine</small></div>
-        </div>
-        <div class="shop-form-grid">
-          <label>Foto/logo da loja<input type="file" accept="image/*" data-shop-photo></label>
-          <label>Imagem de capa da vitrine<input type="file" accept="image/*" data-shop-cover></label>
+    <section class="settings-grid">
+      <article class="panel shop-editor">
+        <div class="editor-cover"><span>PedeIA</span></div>
+        <div class="editor-body">
+          <label>Foto da loja<input type="file" accept="image/*" data-shop-photo></label>
           <label>Nome da loja<input data-setting="name" value="${esc(state.shop.name)}"></label>
-          <label class="shop-description-field">Descrição<textarea data-setting="description">${esc(state.shop.description)}</textarea></label>
+          <label>Descricao<textarea data-setting="description">${esc(state.shop.description)}</textarea></label>
+          <button class="primary-button" data-action="save-shop">Salvar loja</button>
         </div>
-        <button class="primary-button" data-action="save-shop">Salvar identidade</button>
       </article>
 
-      <article class="shop-link-panel panel shop-tab-content ${activeSettingsTab === 'identity' ? 'active' : 'hidden'}">
-        <span class="eyebrow">LINK PUBLICO</span>
-        <h2>Compartilhe sua vitrine</h2>
-        <p>Envie este endereço para seus clientes fazerem pedidos.</p>
-        <div class="shop-link-box"><strong>${esc(shopLink())}</strong><button class="secondary-button" data-action="copy">Copiar link</button></div>
-        <button class="outline-button shop-preview-button" data-action="open-shop">Abrir minha vitrine</button>
-      </article>
+      <article class="panel operation-settings">
+        <p class="eyebrow">FORMAS DE RECEBIMENTO</p>
+        <label class="choice-row"><input type="checkbox" data-delivery="delivery" ${state.delivery.delivery ? 'checked' : ''}><span><strong>Delivery</strong><small>Cliente recebe no endereco informado</small></span></label>
+        <label class="choice-row"><input type="checkbox" data-delivery="pickup" ${state.delivery.pickup ? 'checked' : ''}><span><strong>Retirada no local</strong><small>Cliente busca o pedido na loja</small></span></label>
+        <label>Tempo estimado para delivery<input type="number" min="1" data-delivery-min="deliveryMinutes" value="${state.delivery.deliveryMinutes}"> minutos</label>
+        <label>Tempo estimado para retirada<input type="number" min="1" data-delivery-min="pickupMinutes" value="${state.delivery.pickupMinutes}"> minutos</label>
+        <button class="primary-button" data-action="save-delivery">Salvar tempos</button>
 
-      <article class="operation-settings shop-operation-panel panel shop-tab-content ${activeSettingsTab === 'operation' ? 'active' : 'hidden'}">
-        <div class="shop-profile-heading"><div><span class="eyebrow">2. OPERACAO</span><h2>Formas de recebimento</h2><p>Escolha como sua loja atende cada pedido.</p></div></div>
-        <div class="shop-options-grid">
-          <label class="shop-option"><input type="checkbox" data-delivery="delivery" ${state.delivery.delivery ? 'checked' : ''}><span><strong>Delivery</strong><small>Cliente recebe no endereço</small></span></label>
-          <label class="shop-option"><input type="checkbox" data-delivery="pickup" ${state.delivery.pickup ? 'checked' : ''}><span><strong>Retirada no local</strong><small>Cliente busca na loja</small></span></label>
+        <div class="settings-link">
+          <strong>${esc(shopLink())}</strong>
+          <button class="primary-button" data-action="copy">Copiar link</button>
         </div>
-        <div class="shop-time-grid"><label>Tempo de delivery<input type="number" min="1" data-delivery-min="deliveryMinutes" value="${state.delivery.deliveryMinutes}"><small>minutos</small></label><label>Tempo de retirada<input type="number" min="1" data-delivery-min="pickupMinutes" value="${state.delivery.pickupMinutes}"><small>minutos</small></label></div>
-        <button class="primary-button" data-action="save-delivery">Salvar operação</button>
       </article>
 
-      <article class="schedule-settings shop-schedule-panel panel shop-tab-content ${activeSettingsTab === 'hours' ? 'active' : 'hidden'}">
-        <div class="shop-profile-heading"><div><span class="eyebrow">3. HORARIOS</span><h2>Funcionamento semanal</h2><p>Informe quando sua loja estará disponível.</p></div></div>
-        <div class="schedule-list">${scheduleRows}</div>
-        <button class="primary-button" data-action="save-shop-hours">Salvar horários</button>
+      <article class="panel schedule-settings">
+        <p class="eyebrow">HORARIOS DE FUNCIONAMENTO</p>
+        <h3>Configure os dias e o horario da semana</h3>
+        <div class="schedule-list">
+          ${scheduleRows}
+        </div>
+        <button class="primary-button" data-action="save-shop-hours">Salvar horarios</button>
       </article>
     </section>
   `;
@@ -1822,25 +960,18 @@ function customerShop() {
     .find((order) => cached.name && order.customer === cached.name);
 
   const customerChatBadge = unreadMessagesCount('customer') > 0 ? `<span class="chat-badge">${unreadMessagesCount('customer')}</span>` : '';
-  const featuredProducts = state.products.filter((product) => product.featured);
-  const repeatProducts = state.products
-    .slice()
-    .sort((first, second) => productOrderCount(second) - productOrderCount(first))
-    .filter((product) => productOrderCount(product) > 0)
-    .slice(0, 3);
   app.innerHTML = `
     <div class="customer-app">
       <header class="customer-header">
-        <div class="customer-brand-mark">${state.shop.photo ? `<img src="${state.shop.photo}" alt="">` : esc(state.shop.name.slice(0, 1).toUpperCase())}</div>
-        <strong class="customer-store-name">${esc(state.shop.name)}</strong>
+        ${brand()}
         <div class="customer-header-actions">
-          <button class="customer-header-icon" data-action="customer-chat" aria-label="Falar com a loja">${customerChatBadge}◌</button>
-          <button class="customer-header-icon" data-action="open-cart" aria-label="Abrir sacola">🛒</button>
+          <button class="chat-shop-button" data-action="customer-chat">${customerChatBadge}💬 Falar com a loja</button>
         </div>
       </header>
 
-      <section class="store-hero" style="${state.shop.cover ? `background-image: linear-gradient(90deg, rgba(0,0,0,.7), rgba(0,0,0,.12)), url('${state.shop.cover}')` : ''}">
-        <div class="store-hero-content">
+      <section class="store-hero">
+        ${state.shop.photo ? `<img class="store-photo" src="${state.shop.photo}" alt="">` : '<div class="store-avatar-big"></div>'}
+        <div>
           <span class="open-pill">${state.shop.isOpen ? 'Aberta agora' : 'Fechada'}</span>
           <h1>${esc(state.shop.name)}</h1>
           <p>${esc(state.shop.description)}</p>
@@ -1857,26 +988,19 @@ function customerShop() {
 
       ${state.customerView === 'menu' ? `
         ${tracked ? customerTracker(tracked) : ''}
-        <section class="delivery-banner">
-          <div class="delivery-banner-icon">⌁</div>
-          <div><strong>${state.delivery.delivery ? 'Entrega disponível' : 'Peça para retirar'}</strong><small>${state.delivery.delivery ? `Receba em aproximadamente ${Number(state.delivery.deliveryMinutes || 45)} minutos` : 'Retirada no local disponível'}</small></div>
-          <span>›</span>
-        </section>
         <nav class="customer-categories">
           ${state.categories.map((category) => `<a href="#${encodeURIComponent(category)}">${esc(category)}</a>`).join('')}
         </nav>
 
         <main class="customer-menu">
-          ${repeatProducts.length ? `<section class="customer-section repeat-section"><div class="category-heading"><h2>Mais pedidos</h2><span>Os mais pedidos pelos clientes</span></div><div class="customer-products repeat-products">${repeatProducts.map(customerProduct).join('')}</div></section>` : ''}
-          ${featuredProducts.length ? `<section class="featured-section"><div class="category-heading"><h2>Destaques</h2><span>Escolhidos pela loja</span></div><div class="customer-products featured-products">${featuredProducts.map(customerProduct).join('')}</div></section>` : ''}
           ${state.categories.length ? state.categories.map((category) => `
             <section id="${encodeURIComponent(category)}">
               <div class="category-heading">
                 <h2>${esc(category)}</h2>
-                <span>${state.products.filter((item) => item.category === category && isProductAvailableNow(item)).length} opcoes disponiveis</span>
+                <span>${state.products.filter((item) => item.category === category && item.available).length} opcoes</span>
               </div>
               <div class="customer-products">
-                ${state.products.filter((item) => item.category === category).map(customerProduct).join('')}
+                ${state.products.filter((item) => item.category === category && item.available).map(customerProduct).join('')}
               </div>
             </section>
           `).join('') : '<div class="customer-empty"><strong>O cardapio esta sendo preparado.</strong><small>Volte em breve.</small></div>'}
@@ -1886,12 +1010,6 @@ function customerShop() {
       <button class="floating-cart ${state.cart.length ? '' : 'empty-floating'}" data-action="open-cart">
         Carrinho ${state.cart.length ? `· ${state.cart.length} item(s) · ${money(total)}` : ''}
       </button>
-      <nav class="customer-bottom-nav">
-        <button class="active" data-customer-view="menu">⌂<small>Inicio</small></button>
-        <button data-customer-view="tracking">▣<small>Pedidos</small></button>
-        <button data-action="open-cart">🛒<small>Sacola</small></button>
-        <button data-action="customer-chat">◌<small>Ajuda</small></button>
-      </nav>
     </div>
   `;
 
@@ -2006,16 +1124,15 @@ function statusLabel(status) {
 }
 
 function customerProduct(product) {
-  const availableNow = isProductAvailableNow(product);
   return `
-    <article class="customer-product ${availableNow ? '' : 'is-unavailable'}">
+    <article class="customer-product">
       <div class="food-image">${product.photo ? `<img src="${product.photo}" alt="">` : '<span class="food-placeholder"></span>'}</div>
       <div class="customer-product-info">
         <h3>${esc(product.name)}</h3>
         <p>${esc(product.description)}</p>
         <strong>${money(product.price)}</strong>
       </div>
-      ${availableNow ? `<button class="add-food" data-action="add-cart" data-id="${product.id}">Adicionar</button>` : '<div class="unavailable-label">Indisponível no momento</div>'}
+      <button class="add-food" data-action="add-cart" data-id="${product.id}">Adicionar</button>
     </article>
   `;
 }
@@ -2035,93 +1152,6 @@ function missingShop() {
 }
 
 function bindMerchant() {
-  document.querySelectorAll('[data-shop-settings-tab]').forEach((button) => {
-    button.onclick = () => {
-      state.shopSettingsTab = button.dataset.shopSettingsTab;
-      save();
-      render();
-    };
-  });
-
-  document.querySelectorAll('[data-printer-tab]').forEach((button) => {
-    button.onclick = () => {
-      state.printerConfig.tab = button.dataset.printerTab;
-      save();
-      render();
-    };
-  });
-
-  document.querySelectorAll('[data-chat-conversation]').forEach((button) => {
-    button.onclick = () => {
-      state.chatConversation = button.dataset.chatConversation;
-      save();
-      render();
-    };
-  });
-
-  document.querySelectorAll('[data-close-chat]').forEach((button) => {
-    button.onclick = () => {
-      state.chatConversation = null;
-      save();
-      render();
-    };
-  });
-
-  document.querySelectorAll('[data-chat-pin-conversation]').forEach((button) => {
-    button.onclick = async () => {
-      const key = button.dataset.chatPinConversation;
-      const messages = state.messages.filter((message) => conversationKey(message) === key);
-      const pinned = !messages.some((message) => message.fixada);
-      messages.forEach((message) => { message.fixada = pinned; });
-      save();
-      render();
-      await Promise.all(messages.map((message) => updateMessageInSupabase(message, { fixada: pinned })));
-    };
-  });
-
-  document.querySelectorAll('[data-chat-pin-message]').forEach((button) => {
-    button.onclick = async () => {
-      const message = state.messages.find((item) => String(item.id) === String(button.dataset.chatPinMessage));
-      if (!message) return;
-      const pinned = !message.fixada;
-      message.fixada = pinned;
-      save();
-      render();
-      await updateMessageInSupabase(message, { fixada: pinned });
-    };
-  });
-
-  document.querySelectorAll('[data-chat-delete-message]').forEach((button) => {
-    button.onclick = async () => {
-      const message = state.messages.find((item) => String(item.id) === String(button.dataset.chatDeleteMessage));
-      if (!message || !window.confirm('Excluir esta mensagem permanentemente?')) return;
-      const deleted = await deleteMessageFromSupabase(message);
-      if (!deleted) return;
-      state.messages = state.messages.filter((item) => item !== message);
-      save();
-      render();
-      notify('Mensagem excluída.');
-    };
-  });
-
-  document.querySelector('[data-store-chat]')?.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const text = String(new FormData(event.currentTarget).get('message') || '').trim();
-    if (!text) return;
-    state.messages.push({
-      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      from: 'merchant',
-      text,
-      time: nowTime(),
-      scope: event.currentTarget.dataset.chatOrder ? 'order' : 'store',
-      orderId: event.currentTarget.dataset.chatOrder || null
-    });
-    save();
-    void persistMessageToSupabase(state.messages[state.messages.length - 1], event.currentTarget.dataset.chatOrder || null);
-    render();
-    notify('Mensagem enviada.');
-  });
-
   document.querySelectorAll('[data-view]').forEach((button) => {
     button.onclick = () => {
       state.view = button.dataset.view;
@@ -2155,37 +1185,11 @@ function bindMerchant() {
     };
   });
 
-  document.querySelectorAll('[data-featured-product]').forEach((input) => {
-    input.onchange = () => {
-      const item = state.products.find((product) => String(product.id) === String(input.dataset.featuredProduct));
-      if (item) {
-        item.featured = input.checked;
-        renderSaved();
-      }
-    };
-  });
-
   document.querySelector('[data-shop-photo]')?.addEventListener('change', (event) => {
     const file = event.target.files[0];
     if (!file) return;
     readImage(file, (image) => {
       state.shop.photo = image;
-      renderSaved();
-    });
-  });
-
-  document.querySelector('[data-shop-cover]')?.addEventListener('change', (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    readImage(file, async (image) => {
-      state.shop.cover = image;
-      if (state.shop.id && currentUser) {
-        const { error } = await supabaseClient
-          .from('lojas')
-          .update({ capa_url: image, updated_at: new Date().toISOString() })
-          .eq('id', state.shop.id);
-        if (error) console.error('Erro ao salvar capa da loja:', error);
-      }
       renderSaved();
     });
   });
@@ -2196,7 +1200,6 @@ function handleAction(event) {
   const action = button.dataset.action;
 
   if (action === 'new-category') return categoryDialog();
-  if (action === 'edit-category') return categoryDialog(button.dataset.category);
   if (action === 'new-product' || action === 'edit-product') return productDialog(button.dataset.id);
   if (action === 'remove-category') {
     const categoryName = button.dataset.category;
@@ -2207,8 +1210,13 @@ function handleAction(event) {
   if (action === 'toggle-open') {
     const nextOpen = !state.shop.isOpen;
     if (!nextOpen) {
-      const shouldProceed = window.confirm('Deseja fechar a loja? Os pedidos finalizados continuarão no histórico.');
+      const finishedOrders = state.orders.filter((order) => ['Entregue', 'Finalizado', 'Pronto', 'Saiu para entrega'].includes(order.status));
+      const message = finishedOrders.length ? 'Fechar a loja e apagar os pedidos já finalizados?' : 'Deseja fechar a loja?';
+      const shouldProceed = window.confirm(message);
       if (!shouldProceed) return;
+      if (finishedOrders.length) {
+        state.orders = state.orders.filter((order) => !['Entregue', 'Finalizado', 'Pronto', 'Saiu para entrega'].includes(order.status));
+      }
     }
     state.shop.isOpen = nextOpen;
     return renderSaved();
@@ -2292,19 +1300,6 @@ function handleAction(event) {
     });
     return renderSaved();
   }
-  if (action === 'delete-printer') {
-    const printer = state.printers.find((item) => String(item.id) === String(button.dataset.printerId));
-    if (!printer) return;
-    const confirmed = window.confirm(`Excluir a impressora "${printer.name}"?`);
-    if (!confirmed) return;
-    state.printers = state.printers.filter((item) => item !== printer);
-    if (state.printerConfig.deviceName === printer.name) {
-      const replacement = state.printers.find((item) => item.status === 'Conectada') || state.printers[0];
-      state.printerConfig.deviceName = replacement?.name || '';
-      state.printerConfig.mode = replacement?.type || 'cabo';
-    }
-    return renderSaved();
-  }
   if (action === 'connect-printer') {
     const target = state.printers.find((printer) => printer.id === button.dataset.printerId);
     if (!target) return;
@@ -2341,23 +1336,8 @@ function handleAction(event) {
     return printReceipt(sample);
   }
   if (action === 'logout') {
-    (async () => {
-      try {
-        if (supabaseClient?.auth?.signOut) {
-          await supabaseClient.auth.signOut();
-        }
-      } catch (error) {
-        console.error('Erro ao sair do Supabase:', error);
-      }
-
-      currentUser = null;
-      currentSession = null;
-      state.merchant = null;
-      state.shop = null;
-      sessionStorage.removeItem(sessionKey);
-      render();
-    })();
-    return;
+    sessionStorage.removeItem(sessionKey);
+    return render();
   }
   if (action === 'copy') {
     const text = shopLink();
@@ -2399,7 +1379,6 @@ function acceptOrder(id) {
   order.updatedAt = Date.now();
   order.readyAt = Date.now() + 12 * 60000;
   save();
-  void updateOrderInSupabase(order);
   if (state.printerConfig.autoPrint) printReceipt(order);
   render();
   notify(`Pedido ${order.id} aceito automaticamente.`);
@@ -2423,7 +1402,6 @@ function advanceOrder(id) {
   }
 
   save();
-  void updateOrderInSupabase(order);
   render();
   notify(`Pedido ${order.id} atualizado`);
 }
@@ -2538,50 +1516,23 @@ function printReceipt(order) {
   }
 }
 
-function categoryDialog(existingName = '') {
-  const editing = Boolean(existingName);
+function categoryDialog() {
   showDialog(`
     <div class="dialog-head">
-      <span class="category-icon">${editing ? '✎' : '+'}</span>
-      <h2>${editing ? 'Editar categoria' : 'Nova categoria'}</h2>
-      <p>${editing ? 'Altere o nome sem perder os produtos desta categoria.' : 'Crie uma aba para organizar seus produtos.'}</p>
+      <span class="category-icon">+</span>
+      <h2>Nova categoria</h2>
+      <p>Crie uma aba para organizar seus produtos.</p>
     </div>
     <form id="category-form" class="dialog-form">
-      <label>Nome da categoria<input name="name" required value="${esc(existingName)}" placeholder="Ex.: Tapiocas"></label>
-      <button class="primary-button">${editing ? 'Salvar alterações' : 'Criar categoria'}</button>
+      <label>Nome da categoria<input name="name" required placeholder="Ex.: Tapiocas"></label>
+      <button class="primary-button">Criar categoria</button>
     </form>
   `);
 
-  document.querySelector('#category-form').onsubmit = async (event) => {
+  document.querySelector('#category-form').onsubmit = (event) => {
     event.preventDefault();
     const name = String(new FormData(event.currentTarget).get('name') || '').trim();
-    if (!name || (name !== existingName && state.categories.includes(name))) {
-      notify('Escolha um nome de categoria diferente.');
-      return;
-    }
-
-    if (editing) {
-      const categoryIndex = state.categories.indexOf(existingName);
-      if (categoryIndex < 0) return;
-      if (state.shop?.id && typeof supabaseClient !== 'undefined') {
-        const { error } = await supabaseClient
-          .from('categorias')
-          .update({ nome: name, updated_at: new Date().toISOString() })
-          .eq('loja_id', state.shop.id)
-          .eq('nome', existingName);
-        if (error) {
-          console.error('Erro ao editar categoria no Supabase:', error);
-          notify('Não foi possível editar a categoria no banco.');
-          return;
-        }
-      }
-      state.categories[categoryIndex] = name;
-      state.products.forEach((product) => {
-        if (product.category === existingName) product.category = name;
-      });
-    } else if (name) {
-      state.categories.push(name);
-    }
+    if (name && !state.categories.includes(name)) state.categories.push(name);
     closeDialog();
     renderSaved();
   };
@@ -2589,8 +1540,6 @@ function categoryDialog(existingName = '') {
 
 function productDialog(id) {
   const product = state.products.find((item) => String(item.id) === String(id));
-  const availability = productAvailability(product);
-  const availabilityDays = [['0', 'Dom'], ['1', 'Seg'], ['2', 'Ter'], ['3', 'Qua'], ['4', 'Qui'], ['5', 'Sex'], ['6', 'Sáb']];
   showDialog(`
     <div class="dialog-head">
       <span class="category-icon">Produto</span>
@@ -2603,36 +1552,9 @@ function productDialog(id) {
       <label>Categoria<select name="category" required>${state.categories.map((category) => `<option ${product?.category === category ? 'selected' : ''}>${esc(category)}</option>`).join('')}</select></label>
       <label>Descricao<textarea name="description" required placeholder="Ingredientes, tamanho e diferenciais.">${esc(product?.description || '')}</textarea></label>
       <label>Preco<input name="price" type="number" min="0.01" step="0.01" required value="${product?.price || ''}" placeholder="0,00"></label>
-      <div class="product-settings-block">
-        <strong>Disponibilidade</strong>
-        <label class="choice-row"><input type="checkbox" name="available" ${product?.available !== false ? 'checked' : ''}><span>Disponível para pedidos</span></label>
-        <label class="choice-row"><input type="checkbox" name="featured" ${product?.featured ? 'checked' : ''}><span>Mostrar na área de Destaques</span></label>
-        <small>Escolha os dias e horários em que este produto pode ser pedido.</small>
-        <div class="availability-days">${availabilityDays.map(([value, label]) => `<label><input type="checkbox" name="availability-days" value="${value}" ${availability.days.includes(Number(value)) ? 'checked' : ''}><span>${label}</span></label>`).join('')}</div>
-        <div class="availability-hours"><label>Das<input type="time" name="availability-start" value="${esc(availability.start)}"></label><label>Até<input type="time" name="availability-end" value="${esc(availability.end)}"></label></div>
-      </div>
-      <div class="dialog-actions">
-        ${product ? '<button class="danger-button" type="button" data-dialog-delete-product>Excluir produto</button>' : ''}
-        <button class="primary-button">Salvar produto</button>
-      </div>
+      <button class="primary-button">Salvar produto</button>
     </form>
   `);
-
-  document.querySelector('[data-dialog-delete-product]')?.addEventListener('click', async () => {
-    if (!window.confirm(`Excluir o produto "${product.name}"?`)) return;
-    if (product.id && isUuid(product.id) && typeof supabaseClient !== 'undefined') {
-      const { error } = await supabaseClient.from('produtos').delete().eq('id', product.id).eq('loja_id', state.shop.id);
-      if (error) {
-        console.error('Erro ao excluir produto no Supabase:', error);
-        notify('Não foi possível excluir o produto do banco.');
-        return;
-      }
-    }
-    state.products = state.products.filter((item) => item !== product);
-    closeDialog();
-    renderSaved();
-    notify('Produto excluído.');
-  });
 
   document.querySelector('#product-form').onsubmit = (event) => {
     event.preventDefault();
@@ -2647,13 +1569,7 @@ function productDialog(id) {
         description: String(data.get('description') || '').trim(),
         price: Number(data.get('price') || 0),
         photo: photo || product?.photo || null,
-        available: data.get('available') === 'on',
-        featured: data.get('featured') === 'on',
-        availability: {
-          days: data.getAll('availability-days').map(Number),
-          start: String(data.get('availability-start') || ''),
-          end: String(data.get('availability-end') || '')
-        }
+        available: product?.available ?? true
       };
 
       if (product) Object.assign(product, next);
@@ -2782,8 +1698,7 @@ function checkoutDialog() {
       description: item.description,
       quantity: item.quantity,
       notes: item.notes,
-      price: item.price,
-      photo: item.photo || ''
+      price: item.price
     }));
 
     localStorage.setItem(clientKey, JSON.stringify({ name: customer, phone, address }));
@@ -2807,7 +1722,6 @@ function checkoutDialog() {
     state.orders.push(order);
     state.cart = [];
     save();
-    void persistOrderToSupabase(order);
     closeDialog();
     render();
     notify('Pedido enviado com sucesso!');
@@ -2815,8 +1729,6 @@ function checkoutDialog() {
 }
 
 function customerChat() {
-  markMessagesAsRead('customer', 'store');
-  document.querySelectorAll('.chat-badge').forEach((badge) => badge.remove());
   const storeMessages = state.messages.filter((msg) => msg.scope === 'store' || msg.from === 'merchant');
   showDialog(`
     <div class="dialog-head">
@@ -2840,14 +1752,12 @@ function customerChat() {
     if (!text) return;
 
     state.messages.push({
-      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
       from: 'customer',
       text,
       time: nowTime(),
       scope: 'store'
     });
     save();
-    void persistMessageToSupabase(state.messages[state.messages.length - 1]);
     closeDialog();
     notify('Mensagem enviada para a loja');
   };
@@ -2942,4 +1852,3 @@ document.addEventListener('click', (event) => {
     };
   }
 });
-window.addEventListener('DOMContentLoaded', bootstrap);
